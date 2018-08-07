@@ -297,7 +297,7 @@ class Shopware_Controllers_Frontend_Listing extends Enlight_Controller_Action
         } elseif (empty($categoryContent)) {
             throw new \Enlight_Controller_Exception(
                 'Category not found',
-                Enlight_Controller_Exception::Controller_Dispatcher_Controller_Not_Found
+                Enlight_Controller_Exception::PROPERTY_NOT_FOUND
             );
         } elseif ($this->isShopsBaseCategoryPage($categoryContent['id'])) {
             $location = ['controller' => 'index'];
@@ -555,19 +555,6 @@ class Shopware_Controllers_Frontend_Listing extends Enlight_Controller_Action
             $this->Response()->setHeader('Content-Type', 'text/xml');
             $type = $this->Request()->getParam('sRss') ? 'rss' : 'atom';
             $this->View()->loadTemplate('frontend/listing/' . $type . '.tpl');
-        } elseif (!empty($categoryContent['template'])) {
-            if ($this->View()->templateExists('frontend/listing/' . $categoryContent['template'])) {
-                $this->View()->loadTemplate('frontend/listing/' . $categoryContent['template']);
-            } else {
-                $this->get('corelogger')->error(
-                    'Missing category template detected. Please correct the template for category "' . $categoryContent['name'] . '".',
-                    [
-                        'uri' => $this->Request()->getRequestUri(),
-                        'categoryId' => $categoryId,
-                        'categoryName' => $categoryContent['name'],
-                    ]
-                );
-            }
         }
 
         $this->View()->assign($viewData);
@@ -608,6 +595,23 @@ class Shopware_Controllers_Frontend_Listing extends Enlight_Controller_Action
             'ajaxCountUrlParams' => ['sCategory' => $categoryContent['id']],
             'params' => $this->Request()->getParams(),
         ]);
+
+        if (!empty($categoryContent['template'])) {
+            if ($this->View()->templateExists('frontend/listing/' . $categoryContent['template'])) {
+                $vars = $this->View()->getAssign();
+                $this->View()->loadTemplate('frontend/listing/' . $categoryContent['template']);
+                $this->View()->assign($vars);
+            } else {
+                $this->get('corelogger')->error(
+                    'Missing category template detected. Please correct the template for category "' . $categoryContent['name'] . '".',
+                    [
+                        'uri' => $this->Request()->getRequestUri(),
+                        'categoryId' => $requestCategoryId,
+                        'categoryName' => $categoryContent['name'],
+                    ]
+                );
+            }
+        }
 
         return $categoryContent;
     }
