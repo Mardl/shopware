@@ -25,9 +25,10 @@
 namespace Shopware\Bundle\MediaBundle;
 
 use League\Flysystem\FilesystemInterface;
+use League\Flysystem\Util;
 use Shopware\Bundle\MediaBundle\Strategy\StrategyInterface;
-use Shopware\Components\DependencyInjection\Container;
 use Shopware\Models\Shop\Shop;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Class MediaService
@@ -40,7 +41,7 @@ class MediaService implements MediaServiceInterface
     private $filesystem;
 
     /**
-     * @var Container
+     * @var ContainerInterface
      */
     private $container;
 
@@ -62,12 +63,12 @@ class MediaService implements MediaServiceInterface
     /**
      * @param FilesystemInterface $filesystem
      * @param StrategyInterface   $strategy
-     * @param Container           $container
+     * @param ContainerInterface  $container
      * @param array               $config
      *
      * @throws \Exception
      */
-    public function __construct(FilesystemInterface $filesystem, StrategyInterface $strategy, Container $container, array $config)
+    public function __construct(FilesystemInterface $filesystem, StrategyInterface $strategy, ContainerInterface $container, array $config)
     {
         $this->filesystem = $filesystem;
         $this->container = $container;
@@ -75,7 +76,7 @@ class MediaService implements MediaServiceInterface
         $this->config = $config;
 
         if (!isset($config['mediaUrl'])) {
-            throw new \Exception(sprintf("Please provide a 'mediaUrl' in your %s adapter.", $config['type']));
+            throw new \Exception(sprintf('Please provide a "mediaUrl" in your %s adapter.', $config['type']));
         }
 
         $mediaUrl = $config['mediaUrl'] ?: $this->createFallbackMediaUrl();
@@ -246,6 +247,12 @@ class MediaService implements MediaServiceInterface
     public function migrateFile($path)
     {
         if ($this->getAdapterType() !== 'local' || $this->isEncoded($path)) {
+            return;
+        }
+
+        $normalizedPath = Util::normalizePath($path);
+
+        if (strpos($normalizedPath, 'media/') !== 0) {
             return;
         }
 

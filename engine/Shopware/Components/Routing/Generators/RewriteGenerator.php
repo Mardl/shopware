@@ -30,7 +30,7 @@ use Shopware\Components\Routing\Context;
 use Shopware\Components\Routing\GeneratorListInterface;
 
 /**
- * @category  Shopware
+ * @category Shopware
  *
  * @copyright Copyright (c) shopware AG (http://www.shopware.de)
  */
@@ -198,7 +198,8 @@ class RewriteGenerator implements GeneratorListInterface
                 break;
             case 'support':
             case 'ticket':
-                $orgQuery['sViewport'] = 'ticket';
+            case 'forms':
+                $orgQuery['sViewport'] = 'forms';
                 if (isset($query['sFid'])) {
                     $orgQuery['sFid'] = $query['sFid'];
                 }

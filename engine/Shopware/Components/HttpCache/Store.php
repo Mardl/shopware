@@ -82,7 +82,7 @@ class Store extends BaseStore
             return false;
         }
 
-        /** @var $file \SplFileInfo */
+        /** @var \SplFileInfo $file */
         foreach ($this->createRecursiveFileIterator($this->root) as $file) {
             if (!$file->isFile()) {
                 continue;
@@ -110,7 +110,7 @@ class Store extends BaseStore
     public function purgeByHeader($name, $value = null)
     {
         // optimized purging for x-shopware-cache-id
-        if ($this->lookupOptimization && $name == 'x-shopware-cache-id') {
+        if ($this->lookupOptimization && $name === 'x-shopware-cache-id') {
             return $this->purgeByShopwareId($value);
         }
 
@@ -126,7 +126,7 @@ class Store extends BaseStore
 
         $result = false;
 
-        /** @var $headerFile \SplFileInfo */
+        /** @var \SplFileInfo $headerFile */
         foreach ($this->createRecursiveFileIterator($headerDir) as $headerFile) {
             if (!$headerFile->isFile()) {
                 continue;
@@ -203,7 +203,7 @@ class Store extends BaseStore
             $content[$cacheKey] = $headerKey;
 
             if (!false === $this->save($key, json_encode($content))) {
-                throw new \RuntimeException("Could not write cacheKey $key");
+                throw new \RuntimeException(sprintf('Could not write cacheKey "%s"', $key));
             }
         }
 
@@ -242,7 +242,7 @@ class Store extends BaseStore
         $requestParams = $request->query->all();
 
         if (count($requestParams) === 0) {
-            return rtrim($request->getUri(), '/');
+            return $request->getUri();
         }
 
         $parsed = parse_url($request->getUri());
@@ -268,11 +268,11 @@ class Store extends BaseStore
         $uri = sprintf(
             '%s%s%s',
             $request->getSchemeAndHttpHost(),
-            $path === '/' ? '/' : rtrim($path, '/') . '/',
+            $path,
             empty($stringParams) ? '' : "?$stringParams"
         );
 
-        return rtrim($uri, '/');
+        return $uri;
     }
 
     /**
@@ -315,7 +315,7 @@ class Store extends BaseStore
     /**
      * Delete all pages with the given cache id
      *
-     * @param $id
+     * @param int $id
      *
      * @return bool
      */
@@ -371,7 +371,7 @@ class Store extends BaseStore
     private function save($key, $data)
     {
         $path = $this->getPath($key);
-        if (!is_dir(dirname($path)) && false === @mkdir(dirname($path), 0777, true) && !is_dir(dirname($path))) {
+        if (!is_dir(dirname($path)) && @mkdir(dirname($path), 0777, true) === false && !is_dir(dirname($path))) {
             return false;
         }
 
@@ -386,7 +386,7 @@ class Store extends BaseStore
             return false;
         }
 
-        if (false === @rename($tmpFile, $path)) {
+        if (@rename($tmpFile, $path) === false) {
             return false;
         }
 

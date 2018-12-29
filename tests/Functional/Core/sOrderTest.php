@@ -21,6 +21,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
+use Shopware\Models\Order\Order;
 
 class sOrderTest extends PHPUnit\Framework\TestCase
 {
@@ -32,7 +33,7 @@ class sOrderTest extends PHPUnit\Framework\TestCase
 
     public static function setUpBeforeClass()
     {
-        self::$sessionId = rand(111111111, 999999999);
+        self::$sessionId = mt_rand(111111111, 999999999);
     }
 
     public function setUp()
@@ -116,7 +117,7 @@ class sOrderTest extends PHPUnit\Framework\TestCase
     public function testTransactionExistFalse()
     {
         $this->assertFalse(
-            $this->invokeMethod($this->module, 'isTransactionExist', [uniqid('TRANS-')])
+            $this->invokeMethod($this->module, 'isTransactionExist', [uniqid('TRANS-', true)])
         );
     }
 
@@ -205,15 +206,23 @@ class sOrderTest extends PHPUnit\Framework\TestCase
             'billingaddress' => [
                 1 => "I'll &quot;walk&quot; the &lt;b&gt;dog&lt;/b&gt; now",
                 2 => "I'll &quot;walk&quot; the &lt;b&gt;dog&lt;/b&gt; later",
+                'attributes' => [
+                    'foo' => "I'll &quot;walk&quot; the &lt;b&gt;dog&lt;/b&gt; now",
+                    'bar' => "I'll &quot;walk&quot; the &lt;b&gt;dog&lt;/b&gt; later",
+                ],
             ],
             'shippingaddress' => [
                 1 => "I won't &quot;walk&quot; the &lt;b&gt;dog&lt;/b&gt; now",
                 2 => "I won't &quot;walk&quot; the &lt;b&gt;dog&lt;/b&gt; later",
+                'attributes' => [
+                    'foo' => "I'll &quot;walk&quot; the &lt;b&gt;dog&lt;/b&gt; now",
+                    'bar' => "I'll &quot;walk&quot; the &lt;b&gt;dog&lt;/b&gt; later",
+                ],
+            ],
+            'country' => [
+                1 => '&lt;span&gt;dog&lt;/span&gt;',
             ],
             'additional' => [
-                'country' => [
-                    1 => '&lt;span&gt;dog&lt;/span&gt;',
-                ],
                 'payment' => [
                     'description' => '&lt;span&gt;dog&lt;/span&gt;',
                 ],
@@ -227,16 +236,25 @@ class sOrderTest extends PHPUnit\Framework\TestCase
         );
 
         $this->assertArrayHasKey('billingaddress', $processedUserData);
+        $this->assertArrayHasKey('attributes', $processedUserData['billingaddress']);
         $this->assertArrayHasKey('shippingaddress', $processedUserData);
+        $this->assertArrayHasKey('attributes', $processedUserData['shippingaddress']);
         $this->assertArrayHasKey('additional', $processedUserData);
+        $this->assertArrayHasKey('country', $processedUserData);
 
         $this->assertEquals("I'll \"walk\" the <b>dog</b> now", $processedUserData['billingaddress'][1]);
         $this->assertEquals("I'll \"walk\" the <b>dog</b> later", $processedUserData['billingaddress'][2]);
 
+        $this->assertEquals("I'll \"walk\" the <b>dog</b> now", $processedUserData['billingaddress']['attributes']['foo']);
+        $this->assertEquals("I'll \"walk\" the <b>dog</b> later", $processedUserData['billingaddress']['attributes']['bar']);
+
         $this->assertEquals("I won't \"walk\" the <b>dog</b> now", $processedUserData['shippingaddress'][1]);
         $this->assertEquals("I won't \"walk\" the <b>dog</b> later", $processedUserData['shippingaddress'][2]);
 
-        $this->assertEquals('<span>dog</span>', $processedUserData['additional']['country'][1]);
+        $this->assertEquals("I'll \"walk\" the <b>dog</b> now", $processedUserData['shippingaddress']['attributes']['foo']);
+        $this->assertEquals("I'll \"walk\" the <b>dog</b> later", $processedUserData['shippingaddress']['attributes']['bar']);
+
+        $this->assertEquals('<span>dog</span>', $processedUserData['country'][1]);
         $this->assertEquals('<span>dog</span>', $processedUserData['additional']['payment']['description']);
     }
 
@@ -295,12 +313,11 @@ class sOrderTest extends PHPUnit\Framework\TestCase
     {
         $user = $this->getRandomUser();
         $originalBillingAddress = $user['billingaddress'];
-
-        $orderNumber = rand(111111111, 999999999);
+        $orderNumber = mt_rand(111111111, 999999999);
 
         $this->assertEquals(1, $this->module->sSaveBillingAddress($originalBillingAddress, $orderNumber));
 
-        $billing = Shopware()->Models()->getRepository('Shopware\Models\Order\Billing')->findOneBy(['order' => $orderNumber]);
+        $billing = Shopware()->Models()->getRepository(\Shopware\Models\Order\Billing::class)->findOneBy(['order' => $orderNumber]);
 
         $this->assertEquals($originalBillingAddress['userID'], $billing->getCustomer()->getId());
         $this->assertEquals($originalBillingAddress['company'], $billing->getCompany());
@@ -328,11 +345,11 @@ class sOrderTest extends PHPUnit\Framework\TestCase
         $user = $this->getRandomUser();
         $originalBillingAddress = $user['shippingaddress'];
 
-        $orderNumber = rand(111111111, 999999999);
+        $orderNumber = mt_rand(111111111, 999999999);
 
         $this->assertEquals(1, $this->module->sSaveShippingAddress($originalBillingAddress, $orderNumber));
 
-        $shipping = Shopware()->Models()->getRepository('Shopware\Models\Order\Shipping')->findOneBy(['order' => $orderNumber]);
+        $shipping = Shopware()->Models()->getRepository(\Shopware\Models\Order\Shipping::class)->findOneBy(['order' => $orderNumber]);
 
         $this->assertEquals($originalBillingAddress['userID'], $shipping->getCustomer()->getId());
         $this->assertEquals($originalBillingAddress['company'], $shipping->getCompany());
@@ -376,7 +393,7 @@ class sOrderTest extends PHPUnit\Framework\TestCase
 
     public function testSCreateTemporaryOrder()
     {
-        $order = Shopware()->Models()->getRepository('Shopware\Models\Order\Order')->findOneBy(['temporaryId' => self::$sessionId]);
+        $order = Shopware()->Models()->getRepository(Order::class)->findOneBy(['temporaryId' => self::$sessionId]);
 
         $this->assertNull($order);
 
@@ -384,7 +401,7 @@ class sOrderTest extends PHPUnit\Framework\TestCase
 
         $this->module->sCreateTemporaryOrder();
 
-        $order = Shopware()->Models()->getRepository('Shopware\Models\Order\Order')->findOneBy(['temporaryId' => self::$sessionId]);
+        $order = Shopware()->Models()->getRepository(Order::class)->findOneBy(['temporaryId' => self::$sessionId]);
 
         $this->assertNotNull($order);
         $this->assertNotNull($order->getAttribute());
@@ -418,7 +435,7 @@ class sOrderTest extends PHPUnit\Framework\TestCase
 
         $this->module->sDeleteTemporaryOrder();
 
-        $order = Shopware()->Models()->getRepository('Shopware\Models\Order\Order')->findOneBy(['temporaryId' => self::$sessionId]);
+        $order = Shopware()->Models()->getRepository(Order::class)->findOneBy(['temporaryId' => self::$sessionId]);
 
         $this->assertNull($order);
     }
@@ -500,7 +517,7 @@ class sOrderTest extends PHPUnit\Framework\TestCase
 
         $orderNumber = $this->module->sSaveOrder();
 
-        $order = Shopware()->Models()->getRepository('Shopware\Models\Order\Order')->findOneBy(['number' => $orderNumber]);
+        $order = Shopware()->Models()->getRepository(Order::class)->findOneBy(['number' => $orderNumber]);
 
         $this->assertEquals('1113', $order->getInvoiceAmount());
         $this->assertEquals('1113', $order->getInvoiceAmountNet());
@@ -557,7 +574,7 @@ class sOrderTest extends PHPUnit\Framework\TestCase
 
         $orderNumber = $this->module->sSaveOrder();
 
-        $order = Shopware()->Models()->getRepository('Shopware\Models\Order\Order')->findOneBy(['number' => $orderNumber]);
+        $order = Shopware()->Models()->getRepository(Order::class)->findOneBy(['number' => $orderNumber]);
 
         $orderId = $order->getId();
 
@@ -594,7 +611,7 @@ class sOrderTest extends PHPUnit\Framework\TestCase
 
         $orderNumber = $this->module->sSaveOrder();
 
-        $order = Shopware()->Models()->getRepository('Shopware\Models\Order\Order')->findOneBy(['number' => $orderNumber]);
+        $order = Shopware()->Models()->getRepository(Order::class)->findOneBy(['number' => $orderNumber]);
 
         $orderId = $order->getId();
 
@@ -672,7 +689,7 @@ class sOrderTest extends PHPUnit\Framework\TestCase
 
     protected function createDummyOrder()
     {
-        $number = 'SW-' . uniqid(rand());
+        $number = 'SW-' . uniqid(mt_rand(), true);
         Shopware()->Db()->insert('s_order', [
             'id' => null,
             'userID' => 1,
@@ -714,10 +731,10 @@ class sOrderTest extends PHPUnit\Framework\TestCase
 
         $mainDetail = $article->getMainDetail();
 
-        /** @var $price \Shopware\Models\Article\Price */
+        /** @var \Shopware\Models\Article\Price $price */
         $price = $mainDetail->getPrices()->first();
 
-        $quantity = rand(1, 10);
+        $quantity = mt_rand(1, 10);
 
         Shopware()->Db()->insert('s_order_details', [
             'orderID' => $orderId,
@@ -736,12 +753,12 @@ class sOrderTest extends PHPUnit\Framework\TestCase
 
         Shopware()->Db()->insert('s_order_details_attributes', [
             'detailID' => $detailId,
-            'attribute1' => uniqid('SW-'),
-            'attribute2' => uniqid('SW-'),
-            'attribute3' => uniqid('SW-'),
-            'attribute4' => uniqid('SW-'),
-            'attribute5' => uniqid('SW-'),
-            'attribute6' => uniqid('SW-'),
+            'attribute1' => uniqid('SW-', true),
+            'attribute2' => uniqid('SW-', true),
+            'attribute3' => uniqid('SW-', true),
+            'attribute4' => uniqid('SW-', true),
+            'attribute5' => uniqid('SW-', true),
+            'attribute6' => uniqid('SW-', true),
         ]);
 
         return $detailId;
@@ -836,15 +853,19 @@ class sOrderTest extends PHPUnit\Framework\TestCase
         $user = Shopware()->Db()->fetchRow('SELECT * FROM s_user WHERE id = 1 LIMIT 1');
 
         $billing = Shopware()->Db()->fetchRow(
-            'SELECT * FROM s_user_billingaddress WHERE userID = :id',
+            'SELECT * FROM s_user_addresses WHERE user_id = :id',
             [':id' => $user['id']]
         );
-        $billing['stateID'] = isset($billing['stateId']) ? $billing['stateID'] : '1';
+
+        $billing = $this->convertToLegacyAddressArray($billing);
+
         $shipping = Shopware()->Db()->fetchRow(
-            'SELECT * FROM s_user_shippingaddress WHERE userID = :id',
+            'SELECT * FROM s_user_addresses WHERE user_id = :id',
             [':id' => $user['id']]
         );
-        $shipping['stateID'] = isset($shipping['stateId']) ? $shipping['stateID'] : '1';
+
+        $shipping = $this->convertToLegacyAddressArray($shipping);
+
         $country = Shopware()->Db()->fetchRow(
             'SELECT * FROM s_core_countries WHERE id = :id',
             [':id' => $billing['countryID']]
@@ -896,17 +917,38 @@ class sOrderTest extends PHPUnit\Framework\TestCase
         ];
     }
 
+    /**
+     * Converts an address to the array key structure of a legacy billing or shipping address
+     *
+     * @param $address
+     *
+     * @return array
+     */
+    private function convertToLegacyAddressArray($address)
+    {
+        $output = array_merge($address, [
+            'userID' => $address['user_id'],
+            'countryID' => $address['country_id'],
+            'stateID' => $address['state_id'],
+        ]);
+
+        return $output;
+    }
+
     private function getBasketRows()
     {
         return [
             'AmountNumeric' => 105.83,
             'AmountNetNumeric' => 88.936134453780994,
             'AmountWithTaxNumeric' => 0,
+            'sCurrencyId' => 1,
+            'sCurrencyFactor' => 10,
             'content' => [
                 [
                     'id' => 1,
                     'articlename' => 'Strandtuch "Ibiza"',
                     'articleID' => '178',
+                    'articleDetailsID' => 407,
                     'modus' => '0',
                     'tax_rate' => '19',
                     'price' => '19,95',
@@ -922,6 +964,7 @@ class sOrderTest extends PHPUnit\Framework\TestCase
                     'id' => 2,
                     'articlename' => 'Strandtuch Sunny',
                     'articleID' => '175',
+                    'articleDetailsID' => 404,
                     'ordernumber' => 'SW10175',
                     'quantity' => '1',
                     'price' => '59,99',
@@ -936,6 +979,7 @@ class sOrderTest extends PHPUnit\Framework\TestCase
                     'id' => 3,
                     'articlename' => 'Sommer-Sandale Pink 36',
                     'articleID' => '162',
+                    'articleDetailsID' => 380,
                     'ordernumber' => 'SW10162.1',
                     'quantity' => '1',
                     'price' => '23,99',
@@ -950,6 +994,7 @@ class sOrderTest extends PHPUnit\Framework\TestCase
                     'id' => 4,
                     'articlename' => 'ESD Download Artikel',
                     'articleID' => '197',
+                    'articleDetailsID' => 437,
                     'ordernumber' => 'SW10196',
                     'quantity' => '3',
                     'price' => '29,99',
@@ -964,6 +1009,7 @@ class sOrderTest extends PHPUnit\Framework\TestCase
                     'id' => 5,
                     'articlename' => 'Warenkorbrabatt',
                     'articleID' => '0',
+                    'articleDetailsID' => 0,
                     'ordernumber' => 'SHIPPINGDISCOUNT',
                     'quantity' => '1',
                     'price' => '-2,00',
@@ -1064,7 +1110,7 @@ class sOrderTest extends PHPUnit\Framework\TestCase
                     'class' => 'prepayment.php',
                     'table' => '',
                     'hide' => '0',
-                    'additionaldescription' => 'Sie zahlen einfach vorab und erhalten die Ware bequem und gÃ¼nstig bei Zahlungseingang nach Hause geliefert.',
+                    'additionaldescription' => 'Sie zahlen einfach vorab und erhalten die Ware bequem und günstig bei Zahlungseingang nach Hause geliefert.',
                     'debit_percent' => '0',
                     'surcharge' => '0',
                     'surchargestring' => '',
@@ -1088,9 +1134,9 @@ class sOrderTest extends PHPUnit\Framework\TestCase
                 'salutation' => 'mr',
                 'firstname' => 'Max',
                 'lastname' => 'Mustermann',
-                'street' => 'MustermannstraÃŸe 92',
+                'street' => 'Mustermannstraße 92',
                 'zipcode' => '48624',
-                'city' => 'SchÃ¶ppingen',
+                'city' => 'Schöppingen',
                 'countryID' => '2',
                 'stateID' => null,
             ],

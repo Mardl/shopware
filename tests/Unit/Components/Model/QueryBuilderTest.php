@@ -51,7 +51,7 @@ class QueryBuilderTest extends TestCase
 
     public function testAddFilterBehavior()
     {
-        $this->querybuilder->setParameters(['foo' => 'far']);
+        $this->querybuilder->setParameter('foo', 'far');
         $this->querybuilder->addFilter(['yoo' => 'yar', 'bar' => 'boo']);
         $this->querybuilder->addFilter(['yaa' => 'yaa', 'baa' => 'baa']);
 
@@ -77,25 +77,10 @@ class QueryBuilderTest extends TestCase
         $this->assertEquals($expectedResult, $result);
     }
 
-    public function testEnsureOldDoctrineSetParametersBehavior()
-    {
-        $this->querybuilder->setParameters(['foo' => 'bar']);
-        $this->querybuilder->setParameters(['bar' => 'foo']);
-
-        $result = $this->querybuilder->getParameters()->toArray();
-
-        $expectedResult = [
-            new Parameter('foo', 'bar'),
-            new Parameter('bar', 'foo'),
-        ];
-
-        $this->assertEquals($expectedResult, $result);
-    }
-
     public function testAddParameterProvidesOldDoctrineSetParametersBehavior()
     {
-        $this->querybuilder->setParameters(['foo' => 'bar']);
-        $this->querybuilder->setParameters(['bar' => 'foo']);
+        $this->querybuilder->setParameter('foo', 'bar');
+        $this->querybuilder->setParameter('bar', 'foo');
 
         $result = $this->querybuilder->getParameters()->toArray();
 
@@ -115,7 +100,7 @@ class QueryBuilderTest extends TestCase
 
         $this->querybuilder->addFilter($filter);
 
-        /** @var $expression Andx */
+        /** @var Andx $expression */
         $expression = $this->querybuilder->getDQLPart('where');
         $parts = $expression->getParts();
 
@@ -144,7 +129,7 @@ class QueryBuilderTest extends TestCase
 
         $this->querybuilder->addFilter($filter);
 
-        /** @var $expression Andx */
+        /** @var Andx $expression */
         $expression = $this->querybuilder->getDQLPart('where');
         $parts = $expression->getParts();
 
@@ -187,7 +172,7 @@ class QueryBuilderTest extends TestCase
 
         $this->querybuilder->addFilter($filter);
 
-        /** @var $expression Andx */
+        /** @var Andx $expression */
         $expression = $this->querybuilder->getDQLPart('where');
         $parts = $expression->getParts();
 
@@ -221,7 +206,7 @@ class QueryBuilderTest extends TestCase
 
         $this->querybuilder->addFilter($filter);
 
-        /** @var $expression Andx */
+        /** @var Andx $expression */
         $expression = $this->querybuilder->getDQLPart('where');
         $parts = $expression->getParts();
 
@@ -254,7 +239,7 @@ class QueryBuilderTest extends TestCase
 
         $this->querybuilder->addFilter($filter);
 
-        /** @var $expression Andx */
+        /** @var Andx $expression */
         $expression = $this->querybuilder->getDQLPart('where');
         $parts = $expression->getParts();
 
@@ -286,7 +271,7 @@ class QueryBuilderTest extends TestCase
 
         $this->querybuilder->addFilter($filter);
 
-        /** @var $expression Andx */
+        /** @var Andx $expression */
         $expression = $this->querybuilder->getDQLPart('where');
         $parts = $expression->getParts();
 
@@ -331,7 +316,7 @@ class QueryBuilderTest extends TestCase
 
         $this->querybuilder->addFilter($filter);
 
-        /** @var $expression Andx */
+        /** @var Andx $expression */
         $expression = $this->querybuilder->getDQLPart('where');
         $parts = $expression->getParts();
 

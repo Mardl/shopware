@@ -29,7 +29,7 @@ use Shopware\Bundle\StoreFrontBundle\Gateway;
 use Shopware\Bundle\StoreFrontBundle\Struct;
 
 /**
- * @category  Shopware
+ * @category Shopware
  *
  * @copyright Copyright (c) shopware AG (http://www.shopware.de)
  */
@@ -71,37 +71,29 @@ class PropertyGateway implements Gateway\PropertyGatewayInterface
     private $fieldHelper;
 
     /**
-     * @var \Shopware_Components_Config
-     */
-    private $config;
-
-    /**
-     * @var \Shopware\Components\Model\ModelManager
+     * @var Connection
      */
     private $connection;
 
     /**
-     * @param Connection                  $connection
-     * @param FieldHelper                 $fieldHelper
-     * @param Hydrator\PropertyHydrator   $propertyHydrator
-     * @param \Shopware_Components_Config $config
+     * @param Connection                $connection
+     * @param FieldHelper               $fieldHelper
+     * @param Hydrator\PropertyHydrator $propertyHydrator
      */
     public function __construct(
         Connection $connection,
         FieldHelper $fieldHelper,
-        Hydrator\PropertyHydrator $propertyHydrator,
-        \Shopware_Components_Config $config
+        Hydrator\PropertyHydrator $propertyHydrator
     ) {
         $this->propertyHydrator = $propertyHydrator;
         $this->connection = $connection;
         $this->fieldHelper = $fieldHelper;
-        $this->config = $config;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getList(array $valueIds, Struct\ShopContextInterface $context)
+    public function getList(array $valueIds, Struct\ShopContextInterface $context, array $filterGroupIds = [])
     {
         $query = $this->connection->createQueryBuilder();
 
@@ -128,12 +120,17 @@ class PropertyGateway implements Gateway\PropertyGatewayInterface
             ->orderBy('propertySet.position')
             ->setParameter(':ids', $valueIds, Connection::PARAM_INT_ARRAY);
 
+        if ($filterGroupIds) {
+            $query->andWhere('propertySet.id IN (:filterSetIds)')
+                ->setParameter(':filterSetIds', $filterGroupIds, Connection::PARAM_INT_ARRAY);
+        }
+
         $this->fieldHelper->addMediaTranslation($query, $context);
         $this->fieldHelper->addPropertySetTranslation($query, $context);
         $this->fieldHelper->addPropertyGroupTranslation($query, $context);
         $this->fieldHelper->addPropertyOptionTranslation($query, $context);
 
-        /** @var $statement \Doctrine\DBAL\Driver\ResultStatement */
+        /** @var \Doctrine\DBAL\Driver\ResultStatement $statement */
         $statement = $query->execute();
         $rows = $statement->fetchAll(\PDO::FETCH_ASSOC);
 

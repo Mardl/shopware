@@ -342,26 +342,21 @@ Ext.define('Shopware.apps.Order.view.batch.Form', {
      */
     createPaymentStatusField: function () {
         var me = this,
-            store = Ext.create(
-                'Shopware.store.PaymentStatus',
-                {
-                    pageSize: 5
-                }
-            );
+            store = me.paymentStatusStore;
 
-        return Ext.create('Shopware.form.field.PagingComboBox', {
-            pageSize: 5,
+        return Ext.create('Ext.form.field.ComboBox', {
             name: 'paymentStatus',
-            typeAhead: true,
-            editable: true,
-            emptyText: me.snippets.selectOption,
             triggerAction: 'all',
+            queryMode: 'local',
+            editable: true,
             fieldLabel: me.snippets.paymentStatus,
             store: store,
-            snippets: me.snippets,
             displayField: 'description',
             valueField: 'id',
+            emptyText: me.snippets.selectOption,
+            mode: 'local',
             validateOnBlur: true,
+            snippets: me.snippets,
             validator: me.validateComboboxSelection,
             listeners: {
                 scope: me,
@@ -383,7 +378,7 @@ Ext.define('Shopware.apps.Order.view.batch.Form', {
             store = me.store;
 
         // If no option is selected, this is also considered as valid
-        if (!selectedValue || !selectedValue.length) {
+        if (!selectedValue || !selectedValue.length || selectedValue === me.snippets.selectOption) {
             return recordFound;
         }
         // Validate the typed/selected option. Verify that is indeed a store option
@@ -422,6 +417,7 @@ Ext.define('Shopware.apps.Order.view.batch.Form', {
             name: 'autoSendMail',
             fieldLabel: me.snippets.mail,
             inputValue: true,
+            checked: true,
             uncheckedValue: false,
             disabled: true,
             listeners: {
@@ -454,7 +450,6 @@ Ext.define('Shopware.apps.Order.view.batch.Form', {
      * When no document type has been selected, the field will show a tooltip indicating that
      * in order to activate this checkbox, a document type must be selected.
      *
-     * @param Ext.form.field.ComboBox;
      * @returns Ext.form.field.Checkbox
      */
     createAddAttachmentsField: function () {
@@ -510,9 +505,9 @@ Ext.define('Shopware.apps.Order.view.batch.Form', {
     /**
      * Creates tooltip for a form field
      *
-     * @param Ext.form.Field el
-     * @param string Text to show in the tooltip
-     * @returns  Ext.tip.QuickTip
+     * @param el [Ext.form.Field]
+     * @param text [string] Text to show in the tooltip
+     * @returns Ext.tip.QuickTip
      */
     createTooltip: function (el, text) {
         return Ext.tip.QuickTipManager.register({
@@ -527,8 +522,7 @@ Ext.define('Shopware.apps.Order.view.batch.Form', {
     /**
      * Removes an Ext.Quicktip from an element
      *
-     * @param Ext.form.Field el
-     * @return undefined
+     * @param el [Ext.form.Field]
      */
     removeTooltip: function (el) {
         return Ext.QuickTips.unregister(el.id);

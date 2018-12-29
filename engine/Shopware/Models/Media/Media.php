@@ -24,7 +24,6 @@
 
 namespace   Shopware\Models\Media;
 
-use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 use Shopware\Bundle\MediaBundle\Exception\MediaFileExtensionIsBlacklistedException;
 use Shopware\Bundle\MediaBundle\Exception\MediaFileExtensionNotAllowedException;
@@ -97,14 +96,15 @@ class Media extends ModelEntity
     /**
      * INVERSE SIDE
      *
-     * @ORM\OneToOne(targetEntity="Shopware\Models\Attribute\Media", mappedBy="media", orphanRemoval=true, cascade={"persist"})
-     *
      * @var \Shopware\Models\Attribute\Media
+     *
+     * @ORM\OneToOne(targetEntity="Shopware\Models\Attribute\Media", mappedBy="media", orphanRemoval=true, cascade={"persist"})
      */
     protected $attribute;
 
     /**
-     * @var \Doctrine\Common\Collections\ArrayCollection
+     * @var \Doctrine\Common\Collections\ArrayCollection<\Shopware\Models\Article\Image>
+     *
      * @ORM\OneToMany(targetEntity="Shopware\Models\Article\Image", mappedBy="media")
      */
     protected $articles;
@@ -112,14 +112,15 @@ class Media extends ModelEntity
     /**
      * INVERSE SIDE
      *
-     * @var \Doctrine\Common\Collections\ArrayCollection
+     * @var \Doctrine\Common\Collections\ArrayCollection<\Shopware\Models\Blog\Media>
      *
      * @ORM\OneToMany(targetEntity="Shopware\Models\Blog\Media", mappedBy="media", orphanRemoval=true, cascade={"persist"})
      */
     protected $blogMedia;
 
     /**
-     * @var ArrayCollection
+     * @var \Doctrine\Common\Collections\ArrayCollection<\Shopware\Models\Property\Value>
+     *
      * @ORM\OneToMany(targetEntity="Shopware\Models\Property\Value", mappedBy="media")
      */
     protected $properties;
@@ -137,6 +138,7 @@ class Media extends ModelEntity
      * Unique identifier
      *
      * @var int
+     *
      * @ORM\Id
      * @ORM\Column(name="id", type="integer", nullable=false)
      * @ORM\GeneratedValue(strategy="IDENTITY")
@@ -147,6 +149,7 @@ class Media extends ModelEntity
      * Id of the assigned album
      *
      * @var int
+     *
      * @ORM\Column(name="albumID", type="integer", nullable=false)
      */
     private $albumId;
@@ -155,6 +158,7 @@ class Media extends ModelEntity
      * Name of the media, also used as a file name
      *
      * @var string
+     *
      * @ORM\Column(name="name", type="string", length=255, nullable=false)
      */
     private $name;
@@ -163,6 +167,7 @@ class Media extends ModelEntity
      * Description for the media.
      *
      * @var string
+     *
      * @ORM\Column(name="description", type="text", nullable=false)
      */
     private $description;
@@ -171,6 +176,7 @@ class Media extends ModelEntity
      * Path of the uploaded file.
      *
      * @var string
+     *
      * @ORM\Column(name="path", type="string", length=255, nullable=false)
      */
     private $path;
@@ -179,6 +185,7 @@ class Media extends ModelEntity
      * Flag for the media type.
      *
      * @var string
+     *
      * @ORM\Column(name="type", type="string", length=50, nullable=false)
      */
     private $type;
@@ -187,6 +194,7 @@ class Media extends ModelEntity
      * Extension of the uploaded file
      *
      * @var string
+     *
      * @ORM\Column(name="extension", type="string", length=20, nullable=false)
      */
     private $extension;
@@ -195,6 +203,7 @@ class Media extends ModelEntity
      * Id of the user, who uploaded the file.
      *
      * @var int
+     *
      * @ORM\Column(name="userID", type="integer", nullable=false)
      */
     private $userId;
@@ -202,7 +211,8 @@ class Media extends ModelEntity
     /**
      * Creation date of the media
      *
-     * @var \DateTime
+     * @var \DateTimeInterface
+     *
      * @ORM\Column(name="created", type="date", nullable=false)
      */
     private $created;
@@ -218,6 +228,7 @@ class Media extends ModelEntity
      * Filesize of the file in bytes
      *
      * @var int
+     *
      * @ORM\Column(name="file_size", type="integer", nullable=false)
      */
     private $fileSize;
@@ -226,6 +237,7 @@ class Media extends ModelEntity
      * Width of the file in px if it's an image
      *
      * @var int
+     *
      * @ORM\Column(name="width", type="integer", nullable=true)
      */
     private $width;
@@ -234,6 +246,7 @@ class Media extends ModelEntity
      * Height of the file in px if it's an image
      *
      * @var int
+     *
      * @ORM\Column(name="height", type="integer", nullable=true)
      */
     private $height;
@@ -243,6 +256,7 @@ class Media extends ModelEntity
      * or if the Query Builder is specified with the association.
      *
      * @var \Shopware\Models\Media\Album
+     *
      * @ORM\ManyToOne(targetEntity="\Shopware\Models\Media\Album", inversedBy="media")
      * @ORM\JoinColumn(name="albumID", referencedColumnName="id")
      */
@@ -448,7 +462,7 @@ class Media extends ModelEntity
     /**
      * Sets the creation date of the media.
      *
-     * @param \DateTime $created
+     * @param \DateTimeInterface $created
      *
      * @return \Shopware\Models\Media\Media
      */
@@ -462,7 +476,7 @@ class Media extends ModelEntity
     /**
      * Returns the creation date of the media.
      *
-     * @return \DateTime
+     * @return \DateTimeInterface
      */
     public function getCreated()
     {
@@ -472,7 +486,7 @@ class Media extends ModelEntity
     /**
      * Sets the memory size of the file.
      *
-     * @param float $fileSize
+     * @param int $fileSize
      *
      * @return \Shopware\Models\Media\Media
      */
@@ -501,6 +515,7 @@ class Media extends ModelEntity
     public function getFormattedFileSize()
     {
         $size = $this->fileSize;
+        $filesize = 'unknown';
 
         if ($size < 1024) {
             $filesize = $size . ' bytes';
@@ -526,7 +541,7 @@ class Media extends ModelEntity
     /**
      * Sets the assigned album.
      *
-     * @param  $album
+     * @param \Shopware\Models\Media\Album $album
      *
      * @return \Shopware\Models\Media\Media
      */
@@ -551,7 +566,7 @@ class Media extends ModelEntity
      * Setter method for the file property. If the file is set, the file information will be extracted
      * and set into the internal properties.
      *
-     * @param  $file File
+     * @param UploadedFile $file
      *
      * @return \Shopware\Models\Media\Media
      */
@@ -615,7 +630,7 @@ class Media extends ModelEntity
      */
     public function onSave()
     {
-        //Upload file
+        // Upload file
         $this->uploadFile();
     }
 
@@ -629,31 +644,31 @@ class Media extends ModelEntity
      */
     public function onUpdate()
     {
-        //returns a change set for the model, which contains all changed properties with the old and new value.
+        // Returns a change set for the model, which contains all changed properties with the old and new value.
         $changeSet = Shopware()->Models()->getUnitOfWork()->getEntityChangeSet($this);
 
         $isNameChanged = isset($changeSet['name']) && $changeSet['name'][0] !== $changeSet['name'][1];
         $isAlbumChanged = isset($changeSet['albumId']) && $changeSet['albumId'][0] !== $changeSet['albumId'][1];
 
-        //name changed || album changed?
+        // Name changed || album changed?
         if ($isNameChanged || $isAlbumChanged) {
-            //to remove the old thumbnails, use the old name.
+            // To remove the old thumbnails, use the old name.
             $name = isset($changeSet['name']) ? $changeSet['name'][0] : $this->name;
             $name = $this->removeSpecialCharacters($name);
             $name = $name . '.' . $this->extension;
 
-            //to remove the old album thumbnails, use the old album
+            // To remove the old album thumbnails, use the old album
             $album = isset($changeSet['album']) ? $changeSet['album'][0] : $this->album;
 
             if ($isNameChanged) {
-                //remove default thumbnails
+                // Remove default thumbnails
                 $this->removeDefaultThumbnails($name);
 
-                //create default thumbnails
+                // Create default thumbnails
                 $this->createDefaultThumbnails();
             }
 
-            //remove the configured album thumbnail files
+            // Remove the configured album thumbnail files
             $settings = $album->getSettings();
             if ($settings !== null) {
                 $this->removeAlbumThumbnails($settings->getThumbnailSize(), $name);
@@ -661,22 +676,22 @@ class Media extends ModelEntity
 
             $this->updateAssociations();
 
-            //create album thumbnails
+            // Create album thumbnails
             $this->createAlbumThumbnails($this->album);
         }
 
-        //name changed? Then rename the file and set the new path
+        // Name changed? Then rename the file and set the new path
         if ($isNameChanged) {
             $mediaService = Shopware()->Container()->get('shopware_media.media_service');
             $newName = $this->getFileName();
             $newPath = $this->getUploadDir() . $newName;
 
-            //rename the file
+            // Rename the file
             $mediaService->rename($this->path, $newPath);
 
             $newPath = str_replace(Shopware()->DocPath(), '', $newPath);
 
-            //set the new path to save it.
+            // Set the new path to save it.
             $this->path = $newPath;
         }
     }
@@ -725,25 +740,25 @@ class Media extends ModelEntity
      */
     public function createAlbumThumbnails(Album $album)
     {
-        //is image media?
+        // Is image media?
         if ($this->type !== self::TYPE_IMAGE) {
             return;
         }
 
-        //Check if the album has loaded correctly and should be created for the album thumbnails?
-        if ($album === null || $album->getSettings() === null || !$album->getSettings()->getCreateThumbnails()) {
+        // Check if the album has loaded correctly and should be created for the album thumbnails?
+        if ($album->getSettings() === null || !$album->getSettings()->getCreateThumbnails()) {
             return;
         }
 
         $defaultSizes = $this->getDefaultThumbnails();
         $defaultSize = implode('x', $defaultSizes[0]);
-        //load the configured album thumbnail sizes
+        // Load the configured album thumbnail sizes
         $sizes = $album->getSettings()->getThumbnailSize();
         $sizes[] = $defaultSize;
 
-        //iterate the sizes and create the thumbnails
+        // Iterate the sizes and create the thumbnails
         foreach ($sizes as $size) {
-            //split the width and height (example: $size = 70x70)
+            // Split the width and height (example: $size = 70x70)
             $data = explode('x', $size);
 
             // To avoid any confusing, we're mapping the index based to an association based array and remove the index based elements.
@@ -751,14 +766,14 @@ class Media extends ModelEntity
             $data['height'] = $data[1];
             unset($data[0], $data[1]);
 
-            //continue if configured size is not numeric
+            // Continue if configured size is not numeric
             if (!is_numeric($data['width'])) {
                 continue;
             }
-            //if no height configured, set 0
+            // If no height configured, set 0
             $data['height'] = isset($data['height']) ? $data['height'] : 0;
 
-            //create thumbnail with the configured size
+            // Create thumbnail with the configured size
             $this->createThumbnail((int) $data['width'], (int) $data['height']);
         }
     }
@@ -768,8 +783,8 @@ class Media extends ModelEntity
      * passed file name. The file name have to be passed, because on update the internal
      * file name property is already changed to the new name.
      *
-     * @param   $thumbnailSizes
-     * @param   $fileName
+     * @param array  $thumbnailSizes
+     * @param string $fileName
      */
     public function removeAlbumThumbnails($thumbnailSizes, $fileName)
     {
@@ -817,7 +832,7 @@ class Media extends ModelEntity
             return $this->removeSpecialCharacters($this->name) . '.' . $this->extension;
         }
 
-        // do whatever you want to generate a unique name
+        // Do whatever you want to generate a unique name
         return Random::getAlphanumericString(13) . '.' . $this->extension;
     }
 
@@ -868,7 +883,7 @@ class Media extends ModelEntity
         }
         $sizes = [];
 
-        //concat default sizes
+        // Concat default sizes
         foreach ($this->defaultThumbnails as $size) {
             if (count($size) === 1) {
                 $sizes[] = $size . 'x' . $size;
@@ -877,7 +892,7 @@ class Media extends ModelEntity
             }
         }
 
-        //Check if the album has loaded correctly.
+        // Check if the album has loaded correctly.
         if ($this->album !== null && $this->album->getSettings() !== null && $this->album->getSettings()->getCreateThumbnails() === 1) {
             $sizes = array_merge($this->album->getSettings()->getThumbnailSize(), $sizes);
             $sizes = array_unique($sizes);
@@ -885,7 +900,7 @@ class Media extends ModelEntity
         $thumbnails = [];
         $suffix = $highDpi ? '@2x' : '';
 
-        //iterate thumbnail sizes
+        // Iterate thumbnail sizes
         foreach ($sizes as $size) {
             if (strpos($size, 'x') === false) {
                 $size = $size . 'x' . $size;
@@ -981,7 +996,7 @@ class Media extends ModelEntity
      */
     public function setAttribute($attribute)
     {
-        return $this->setOneToOne($attribute, '\Shopware\Models\Attribute\Media', 'attribute', 'media');
+        return $this->setOneToOne($attribute, \Shopware\Models\Attribute\Media::class, 'attribute', 'media');
     }
 
     /**
@@ -1010,12 +1025,10 @@ class Media extends ModelEntity
 
     /**
      * Internal helper function which updates all associated data which has the image path as own property.
-     *
-     * @internal param $name
      */
     private function updateAssociations()
     {
-        /** @var $article \Shopware\Models\Article\Image */
+        /** @var \Shopware\Models\Article\Image $article */
         foreach ($this->articles as $article) {
             $article->setPath($this->getName());
             Shopware()->Models()->persist($article);
@@ -1035,24 +1048,26 @@ class Media extends ModelEntity
     private function uploadFile()
     {
         $mediaService = Shopware()->Container()->get('shopware_media.media_service');
+        $projectDir = Shopware()->Container()->getParameter('shopware.app.rootdir');
 
-        //move the file to the upload directory
+        // Move the file to the upload directory
         if ($this->file !== null) {
-            //file already exists?
+            // File already exists?
             if ($mediaService->has($this->getPath())) {
                 $this->name .= Random::getAlphanumericString(13);
                 // Path in setFileInfo is set, before the file gets a unique ID here
                 // Therefore the path is updated here SW-2889
-                $this->path = str_replace(Shopware()->DocPath(), '', $this->getUploadDir() . $this->getFileName());
+                $this->path = str_replace($projectDir, '', $this->getUploadDir() . $this->getFileName());
 
                 /*
-                 * SW-3805 - Hotfix for windows path's
+                 * SW-3805 - Hotfix for windows paths
                  */
                 $this->path = str_replace('\\', '/', $this->path);
             }
+            $tempPath = $projectDir . 'media' . DIRECTORY_SEPARATOR . 'temp' . DIRECTORY_SEPARATOR . $this->file->getFilename();
 
             $mediaService->write($this->path, file_get_contents($this->file->getRealPath()));
-            if (is_uploaded_file($this->file->getPathname())) {
+            if (file_exists($tempPath) || is_uploaded_file($this->file->getPathname())) {
                 unlink($this->file->getPathname());
             }
         }
@@ -1066,7 +1081,7 @@ class Media extends ModelEntity
      */
     private function createDefaultThumbnails()
     {
-        //create only thumbnails for image media
+        // Create only thumbnails for image media
         if ($this->type !== self::TYPE_IMAGE) {
             return;
         }
@@ -1081,7 +1096,7 @@ class Media extends ModelEntity
      * Removes the default thumbnail files. The file name have to be passed, because on update the internal
      * file name property is already changed to the new name.
      *
-     * @param $fileName
+     * @param string $fileName
      */
     private function removeDefaultThumbnails($fileName)
     {
@@ -1124,8 +1139,10 @@ class Media extends ModelEntity
      */
     private function getUploadDir()
     {
-        // the absolute directory path where uploaded documents should be saved
-        return Shopware()->DocPath('media_' . strtolower($this->type));
+        // The absolute directory path where uploaded documents should be saved
+        $projectDir = Shopware()->Container()->getParameter('shopware.app.rootdir');
+
+        return $projectDir . 'media' . DIRECTORY_SEPARATOR . strtolower($this->type) . DIRECTORY_SEPARATOR;
     }
 
     /**
@@ -1145,12 +1162,12 @@ class Media extends ModelEntity
     /**
      * Create a thumbnail file for the internal file with the passed width and height.
      *
-     * @param $width
-     * @param $height
+     * @param int $width
+     * @param int $height
      */
     private function createThumbnail($width, $height)
     {
-        //create only thumbnails for image media
+        // Create only thumbnails for image media
         if ($this->type !== self::TYPE_IMAGE) {
             return;
         }
@@ -1170,8 +1187,8 @@ class Media extends ModelEntity
      * Create the new names for the jpg file and the file with the original extension
      * Also returns high dpi paths
      *
-     * @param $suffix
-     * @param $fileName
+     * @param string $suffix
+     * @param string $fileName
      *
      * @return array
      */
@@ -1203,18 +1220,18 @@ class Media extends ModelEntity
         $name = $this->file->getBasename();
 
         if ($this->file instanceof UploadedFile) {
-            //load file information
+            // Load file information
             $fileInfo = pathinfo($this->file->getClientOriginalName());
             $name = $fileInfo['filename'];
 
-            if (!empty($fileInfo['extension'])) {
+            if (isset($fileInfo['extension'])) {
                 $extension = $fileInfo['extension'];
             }
         }
 
         $extension = strtolower($extension);
 
-        // validate extension
+        // Validate extension
         // #1 - whitelist
         $mappingService = Shopware()->Container()->get('shopware_media.extension_mapping');
         if (!$mappingService->isAllowed($extension)) {
@@ -1226,30 +1243,37 @@ class Media extends ModelEntity
             throw new MediaFileExtensionIsBlacklistedException($extension);
         }
 
-        // make sure that the name don't contains the file extension.
+        // Make sure that the name doesn't contain the file extension.
         $name = str_ireplace('.' . $extension, '', $name);
         if ($extension === 'jpeg') {
             $name = str_ireplace('.jpg', '', $name);
         }
 
-        //set the file type using the type mapping
+        // Set the file type using the type mapping
         $this->type = $mappingService->getType($extension);
 
         // The filesize in bytes.
         $this->fileSize = $this->file->getSize();
         $this->name = $this->removeSpecialCharacters($name);
         $this->extension = str_replace('jpeg', 'jpg', $extension);
-        $this->path = str_replace(Shopware()->DocPath(), '', $this->getUploadDir() . $this->getFileName());
+
+        $projectDir = Shopware()->Container()->getParameter('shopware.app.rootdir');
+        $this->path = str_replace($projectDir, '', $this->getUploadDir() . $this->getFileName());
 
         if (DIRECTORY_SEPARATOR !== '/') {
             $this->path = str_replace(DIRECTORY_SEPARATOR, '/', $this->path);
         }
     }
 
+    /**
+     * @param string $name
+     *
+     * @return string
+     */
     private function removeSpecialCharacters($name)
     {
         $name = iconv('utf-8', 'ascii//translit', $name);
-        $name = preg_replace('#[^A-z0-9\-_]#', '-', $name);
+        $name = preg_replace('#[^A-Za-z0-9\-_]#', '-', $name);
         $name = preg_replace('#-{2,}#', '-', $name);
         $name = trim($name, '-');
 

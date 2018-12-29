@@ -21,7 +21,6 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
-
 use Shopware\Models\Form\Field;
 use Shopware\Models\Form\Form;
 
@@ -109,7 +108,7 @@ class Shopware_Controllers_Backend_Form extends Shopware_Controllers_Backend_Ext
             return;
         }
 
-        /* @var $result Form */
+        /* @var Form $result */
         $result = $this->getRepository()->find($id);
         if (!$result) {
             $this->View()->assign(['success' => false, 'message' => 'Form not found']);
@@ -145,7 +144,7 @@ class Shopware_Controllers_Backend_Form extends Shopware_Controllers_Backend_Ext
             return;
         }
 
-        /* @var $result Form */
+        /* @var Form $result */
         $result = $this->getRepository()->find($id);
         if (!$result) {
             $this->View()->assign(['success' => false, 'message' => 'Form not found']);
@@ -174,7 +173,7 @@ class Shopware_Controllers_Backend_Form extends Shopware_Controllers_Backend_Ext
             return;
         }
 
-        /* @var $result Form */
+        /* @var Form $result */
         $result = $this->getRepository()->find($id);
         if (!$result) {
             $this->View()->assign(['success' => false, 'message' => 'Form not found']);
@@ -229,7 +228,7 @@ class Shopware_Controllers_Backend_Form extends Shopware_Controllers_Backend_Ext
             return;
         }
 
-        /* @var $result Field */
+        /* @var Field $result */
         $result = $this->getManager()->getRepository(\Shopware\Models\Form\Field::class)->find($id);
         if (!$result) {
             $this->View()->assign(['success' => false, 'message' => 'Field not found']);
@@ -261,7 +260,7 @@ class Shopware_Controllers_Backend_Form extends Shopware_Controllers_Backend_Ext
             return;
         }
 
-        /* @var $form Form */
+        /* @var Form $form */
         $form = $this->getRepository()->find($id);
         if (!$form) {
             $this->View()->assign(['success' => false, 'message' => 'Form not found']);
@@ -298,7 +297,7 @@ class Shopware_Controllers_Backend_Form extends Shopware_Controllers_Backend_Ext
             return;
         }
 
-        /* @var $result Field */
+        /* @var Field $result */
         $result = $this->getManager()->find(\Shopware\Models\Form\Field::class, $id);
         if (!$result) {
             $this->View()->assign(['success' => false, 'message' => 'Field not found']);
@@ -356,11 +355,12 @@ class Shopware_Controllers_Backend_Form extends Shopware_Controllers_Backend_Ext
     /**
      * Gets a single form incl. it's fields
      *
-     * @param int $id
+     * @param int      $id     Mandatory form id
+     * @param int|null $shopId If specified, the form will be fetched from a specific store
      */
-    protected function getSingleForm($id)
+    protected function getSingleForm($id, $shopId = null)
     {
-        $data = $this->getRepository()->getFormQuery($id)->getArrayResult();
+        $data = $this->getRepository()->getFormQuery($id, $shopId)->getArrayResult();
 
         foreach ($data as &$form) {
             $form['shopIds'] = $this->explodeShopIds($form['shopIds']);

@@ -30,7 +30,7 @@ use Shopware\Components\Routing\Context;
 use Shopware\Components\Routing\MatcherInterface;
 
 /**
- * @category  Shopware
+ * @category Shopware
  *
  * @copyright Copyright (c) shopware AG (http://www.shopware.de)
  */
@@ -66,11 +66,9 @@ class EventMatcher implements MatcherInterface
         $request->setPathInfo($pathInfo);
 
         $event = $this->eventManager->notifyUntil('Enlight_Controller_Router_Route', [
-            //'subject' => $router, @deprecated someone need it?
             'request' => $request,
             'context' => $context,
-        ]
-        );
+        ]);
 
         return $event !== null ? $event->getReturn() : false;
     }

@@ -23,14 +23,14 @@
  */
 
 /**
- * @category  Shopware
+ * @category Shopware
  *
  * @copyright Copyright (c) shopware AG (http://www.shopware.de)
  */
 class Shopware_Components_Modules extends Enlight_Class implements ArrayAccess
 {
     /**
-     * @var sSystem
+     * @var \sSystem
      */
     protected $system;
 
@@ -55,7 +55,7 @@ class Shopware_Components_Modules extends Enlight_Class implements ArrayAccess
     /**
      * Set class property
      *
-     * @param $system
+     * @param \sSystem $system
      */
     public function setSystem($system)
     {
@@ -71,7 +71,7 @@ class Shopware_Components_Modules extends Enlight_Class implements ArrayAccess
      */
     public function getModule($name)
     {
-        if ($name[0] === 's') {
+        if (strpos($name, 's') === 0) {
             $name = substr($name, 1);
         }
         if ($name !== 'RewriteTable') {
@@ -88,15 +88,15 @@ class Shopware_Components_Modules extends Enlight_Class implements ArrayAccess
     }
 
     /**
-     * @param $offset
-     * @param $value
+     * @param string $offset
+     * @param mixed  $value
      */
     public function offsetSet($offset, $value)
     {
     }
 
     /**
-     * @param $offset
+     * @param string $offset
      *
      * @return bool
      */
@@ -106,14 +106,14 @@ class Shopware_Components_Modules extends Enlight_Class implements ArrayAccess
     }
 
     /**
-     * @param $offset
+     * @param string $offset
      */
     public function offsetUnset($offset)
     {
     }
 
     /**
-     * @param $offset
+     * @param string $offset
      *
      * @return mixed
      */
@@ -155,7 +155,7 @@ class Shopware_Components_Modules extends Enlight_Class implements ArrayAccess
     }
 
     /**
-     * @return sSystem
+     * @return \sSystem
      */
     public function System()
     {
@@ -214,7 +214,7 @@ class Shopware_Components_Modules extends Enlight_Class implements ArrayAccess
      * Load a module defined by $name
      * Possible values for $name - sBasket, sAdmin etc.
      *
-     * @param $name
+     * @param string $name
      */
     private function loadModule($name)
     {
@@ -225,7 +225,7 @@ class Shopware_Components_Modules extends Enlight_Class implements ArrayAccess
         $this->modules_container[$name] = null;
         $name = basename($name);
 
-        if ($name == 'sSystem') {
+        if ($name === 'sSystem') {
             $this->modules_container[$name] = $this->system;
 
             return;

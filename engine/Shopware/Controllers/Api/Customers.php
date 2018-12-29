@@ -21,11 +21,10 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
-
 class Shopware_Controllers_Api_Customers extends Shopware_Controllers_Api_Rest
 {
     /**
-     * @var Shopware\Components\Api\Resource\Customer
+     * @var \Shopware\Components\Api\Resource\Customer
      */
     protected $resource = null;
 
@@ -41,8 +40,8 @@ class Shopware_Controllers_Api_Customers extends Shopware_Controllers_Api_Rest
      */
     public function indexAction()
     {
-        $limit = $this->Request()->getParam('limit', 1000);
-        $offset = $this->Request()->getParam('start', 0);
+        $limit = (int) $this->Request()->getParam('limit', 1000);
+        $offset = (int) $this->Request()->getParam('start', 0);
         $sort = $this->Request()->getParam('sort', []);
         $filter = $this->Request()->getParam('filter', []);
 

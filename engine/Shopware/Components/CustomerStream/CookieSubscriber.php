@@ -27,7 +27,7 @@ namespace Shopware\Components\CustomerStream;
 use Doctrine\DBAL\Connection;
 use Enlight\Event\SubscriberInterface;
 use Ramsey\Uuid\Uuid;
-use Shopware\Components\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class CookieSubscriber implements SubscriberInterface
 {
@@ -37,15 +37,15 @@ class CookieSubscriber implements SubscriberInterface
     private $connection;
 
     /**
-     * @var Container
+     * @var ContainerInterface
      */
     private $container;
 
     /**
-     * @param Connection $connection
-     * @param Container  $container
+     * @param Connection         $connection
+     * @param ContainerInterface $container
      */
-    public function __construct(Connection $connection, Container $container)
+    public function __construct(Connection $connection, ContainerInterface $container)
     {
         $this->connection = $connection;
         $this->container = $container;
@@ -150,8 +150,8 @@ class CookieSubscriber implements SubscriberInterface
         $request = $controller->Request();
 
         $context = $this->container->get('shopware_storefront.context_service')->getShopContext();
-        $token = Uuid::uuid4();
-        $token .= '.' . $context->getShop()->getParentId();
+        $token = Uuid::uuid4()->toString();
+        $token .= '.' . (string) $context->getShop()->getParentId();
 
         $expire = time() + 365 * 24 * 60 * 60;
 

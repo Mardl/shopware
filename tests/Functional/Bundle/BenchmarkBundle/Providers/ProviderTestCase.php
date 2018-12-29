@@ -24,35 +24,27 @@
 
 namespace Shopware\Tests\Functional\Bundle\BenchmarkBundle\Providers;
 
+use Doctrine\DBAL\Connection;
 use Shopware\Bundle\BenchmarkBundle\BenchmarkProviderInterface;
+use Shopware\Bundle\BenchmarkBundle\Service\StatisticsService;
+use Shopware\Bundle\BenchmarkBundle\StatisticsClient;
+use Shopware\Bundle\BenchmarkBundle\Struct\StatisticsResponse;
+use Shopware\Bundle\StoreFrontBundle\Struct\ShopContextInterface;
+use Shopware\Tests\Functional\Bundle\BenchmarkBundle\BenchmarkTestCase;
 
-abstract class ProviderTestCase extends \PHPUnit\Framework\TestCase
+abstract class ProviderTestCase extends BenchmarkTestCase
 {
     /**
      * @var BenchmarkProviderInterface
      */
     private $provider;
 
-    public function setUp()
-    {
-        $dbalConnection = Shopware()->Container()->get('dbal_connection');
-        $dbalConnection->exec('START TRANSACTION;');
-    }
-
-    public function tearDown()
-    {
-        $dbalConnection = Shopware()->Container()->get('dbal_connection');
-        $dbalConnection->exec('ROLLBACK;');
-    }
-
     /**
      * @group BenchmarkBundle
      */
     public function testGetArrayKeysFit()
     {
-        $provider = $this->getProvider();
-
-        $resultData = $provider->getBenchmarkData();
+        $resultData = $this->getBenchmarkData();
         $arrayKeys = array_keys($resultData);
 
         $this->assertCount($this::EXPECTED_KEYS_COUNT, $arrayKeys);
@@ -63,10 +55,35 @@ abstract class ProviderTestCase extends \PHPUnit\Framework\TestCase
      */
     public function testGetValidateTypes()
     {
-        $provider = $this->getProvider();
-        $resultData = $provider->getBenchmarkData();
+        $resultData = $this->getBenchmarkData();
+
+        if (!is_array($this::EXPECTED_TYPES)) {
+            $this->assertInternalType($this::EXPECTED_TYPES, $resultData);
+
+            return;
+        }
 
         $this->checkForTypes($resultData, $this::EXPECTED_TYPES);
+    }
+
+    /**
+     * @param string $dataName
+     */
+    protected function installDemoData($dataName)
+    {
+        $dbalConnection = Shopware()->Container()->get('dbal_connection');
+        $basicContent = $this->openDemoDataFile('basic_setup');
+        $dbalConnection->exec($basicContent);
+
+        parent::installDemoData($dataName);
+    }
+
+    /**
+     * @return array
+     */
+    protected function getBenchmarkData()
+    {
+        return $this->getProvider()->getBenchmarkData(Shopware()->Container()->get('shopware_storefront.context_service')->createShopContext(1));
     }
 
     /**
@@ -82,24 +99,16 @@ abstract class ProviderTestCase extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @param string $dataName
-     */
-    protected function installDemoData($dataName)
-    {
-        $dbalConnection = Shopware()->Container()->get('dbal_connection');
-        $fileContent = $this->openDemoDataFile($dataName);
-
-        $dbalConnection->exec($fileContent);
-    }
-
-    /**
      * @param array $data
      * @param array $expectedTypes
      */
     protected function checkForTypes(array $data, array $expectedTypes)
     {
-        //TODO: Find solution if no entry is in database, maybe example sql as requirement?
         foreach ($data as $resultKey => $resultItem) {
+            if (!$expectedTypes[$resultKey]) {
+                continue;
+            }
+
             if (is_array($expectedTypes[$resultKey])) {
                 $this->checkForTypes($resultItem, $expectedTypes[$resultKey]);
                 continue;
@@ -108,8 +117,7 @@ abstract class ProviderTestCase extends \PHPUnit\Framework\TestCase
             try {
                 $this->assertInternalType(
                     $expectedTypes[$resultKey],
-                    $resultItem,
-                    'foo'
+                    $resultItem
                 );
             } catch (\PHPUnit_Framework_ExpectationFailedException $e) {
                 // Print custom error message
@@ -122,20 +130,53 @@ abstract class ProviderTestCase extends \PHPUnit\Framework\TestCase
         }
     }
 
-    /**
-     * @param string $fileName
-     *
-     * @throws \Exception
-     */
-    private function openDemoDataFile($fileName)
+    protected function getAssetsFolder()
     {
-        $fileName .= '.sql';
-        $path = __DIR__ . '/assets/';
-        $filePath = $path . $fileName;
-        if (!file_exists($filePath)) {
-            throw new \Exception(sprintf('File with name %s does not exist in path %s', $fileName, $path));
-        }
+        return __DIR__ . '/assets/';
+    }
 
-        return file_get_contents($filePath);
+    /**
+     * @param int $shopId
+     *
+     * @return ShopContextInterface
+     */
+    protected function getShopContextByShopId($shopId)
+    {
+        return Shopware()->Container()->get('shopware_storefront.context_service')->createShopContext($shopId);
+    }
+
+    protected function resetConfig()
+    {
+        /** @var Connection $dbalConnection */
+        $dbalConnection = Shopware()->Container()->get('dbal_connection');
+
+        $dbalConnection->update('s_benchmark_config', [
+            'last_order_id' => '0',
+            'last_customer_id' => '0',
+            'last_product_id' => '0',
+        ], ['1' => '1']);
+    }
+
+    protected function sendStatistics($batchSize = null)
+    {
+        Shopware()->Models()->clear();
+        $response = new StatisticsResponse(new \DateTime('now', new \DateTimeZone('UTC')), 'foo', false);
+
+        $client = $this->createMock(StatisticsClient::class);
+
+        $client
+            ->method('sendStatistics')->willReturn($response);
+
+        $service = new StatisticsService(
+            Shopware()->Container()->get('shopware.benchmark_bundle.collector'),
+            $client,
+            Shopware()->Container()->get('shopware.benchmark_bundle.repository.config'),
+            Shopware()->Container()->get('shopware_storefront.context_service'),
+            Shopware()->Container()->get('dbal_connection')
+        );
+
+        $config = Shopware()->Container()->get('shopware.benchmark_bundle.repository.config')->findOneBy(['shopId' => 1]);
+
+        $service->transmit($config, $config->getBatchSize());
     }
 }

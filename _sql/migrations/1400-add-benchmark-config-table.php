@@ -25,15 +25,18 @@ class Migrations_Migration1400 extends Shopware\Components\Migrations\AbstractMi
 {
     public function up($modus)
     {
-        $this->addSQL('CREATE TABLE `s_benchmark_config` (
-         `last_order_id` int(11) NOT NULL,
-         `orders_batch_size` int(11) NOT NULL
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;');
-
-        $this->addSql(
-        'INSERT INTO `s_benchmark_config` (`last_order_id`, `orders_batch_size`)
-            VALUES
-            (0, 1000);'
-        );
+        $this->connection->query('CREATE TABLE IF NOT EXISTS `s_benchmark_config` (
+             `id` BINARY(16) UNIQUE NOT NULL,
+             `active` TINYINT(1) NOT NULL DEFAULT 0,
+             `last_sent` DATETIME NOT NULL,
+             `last_received` DATETIME NOT NULL,
+             `last_order_id` INT(11) NOT NULL,
+             `orders_batch_size` INT(11) NOT NULL,
+             `industry` INT(11) DEFAULT NULL,
+             `response_token` VARCHAR(200) DEFAULT NULL,
+             `cached_template` LONGTEXT DEFAULT NULL,
+             PRIMARY KEY (`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+            ');
     }
 }

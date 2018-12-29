@@ -25,7 +25,7 @@
 namespace Shopware\Components\Emotion;
 
 use Doctrine\DBAL\Connection;
-use Shopware\Bundle\MediaBundle\MediaService;
+use Shopware\Bundle\MediaBundle\MediaServiceInterface;
 use Shopware\Components\Api\Resource\EmotionPreset;
 use Shopware\Components\Emotion\Preset\EmotionToPresetDataTransformerInterface;
 use Shopware\Components\Emotion\Preset\PresetDataSynchronizerInterface;
@@ -50,7 +50,7 @@ class EmotionExporter implements EmotionExporterInterface
     private $presetResource;
 
     /**
-     * @var MediaService
+     * @var MediaServiceInterface
      */
     private $mediaService;
 
@@ -70,16 +70,19 @@ class EmotionExporter implements EmotionExporterInterface
     private $slug;
 
     /**
-     * @param EmotionToPresetDataTransformerInterface $emotionToPresetDataTransformer
+     * @param EmotionToPresetDataTransformerInterface $transformer
      * @param PresetDataSynchronizerInterface         $synchronizer
      * @param EmotionPreset                           $emotionPresetResource
+     * @param MediaServiceInterface                   $mediaService
      * @param string                                  $rootDirectory
+     * @param Connection                              $connection
+     * @param SlugInterface                           $slug
      */
     public function __construct(
         EmotionToPresetDataTransformerInterface $transformer,
         PresetDataSynchronizerInterface $synchronizer,
         EmotionPreset $emotionPresetResource,
-        MediaService $mediaService,
+        MediaServiceInterface $mediaService,
         $rootDirectory,
         Connection $connection,
         SlugInterface $slug
@@ -110,7 +113,7 @@ class EmotionExporter implements EmotionExporterInterface
         $filename = $this->rootDirectory . '/files/downloads/' . $name . time() . '.zip';
 
         if ($zip->open($filename, \ZipArchive::CREATE) !== true) {
-            throw new \Exception('Could not create zip file!');
+            throw new \Exception(sprintf('Could not create zip file "%s"!', $filename));
         }
 
         $emotionData = $this->transformer->transform($emotionId, true);
@@ -145,7 +148,7 @@ class EmotionExporter implements EmotionExporterInterface
         $zip->addFromString('emotion.json', json_encode($exportData));
 
         if (!$zip->close()) {
-            throw new \Exception('Could not close zip file!');
+            throw new \Exception(sprintf('Could not close zip file "%s"!', $filename));
         }
 
         $this->presetResource->delete($preset->getId());

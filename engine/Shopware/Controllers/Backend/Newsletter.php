@@ -21,7 +21,6 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
-
 use Shopware\Components\CSRFWhitelistAware;
 
 /**
@@ -80,6 +79,8 @@ class Shopware_Controllers_Backend_Newsletter extends Enlight_Controller_Action 
      */
     public function viewAction()
     {
+        $hash = null;
+
         if ($this->Request()->getParam('id')) {
             $mailingID = (int) $this->Request()->getParam('id');
             if (!Shopware()->Container()->get('Auth')->hasIdentity()) {
@@ -227,6 +228,7 @@ class Shopware_Controllers_Backend_Newsletter extends Enlight_Controller_Action 
             $template->assign('sCampaignHash', $hash, true);
             $template->assign('sRecommendations', $this->getMailingSuggest($mailing['id'], $user['userID']), true);
 
+            /** @var array $voucher */
             $voucher = $template->getTemplateVars('sVoucher');
             if (!empty($voucher['id'])) {
                 $voucher['code'] = $this->getVoucherCode($voucher['id']);
@@ -256,7 +258,7 @@ class Shopware_Controllers_Backend_Newsletter extends Enlight_Controller_Action 
             $validator = $this->container->get('validator.email');
             if (!$validator->isValid($user['email'])) {
                 echo "Skipped invalid email\n";
-                // SW-4526
+            // SW-4526
                 // Don't `continue` with next iteration without setting user's lastmailing
                 // else the mailing.status will never be set to 2
                 // and sending the mail will block
@@ -392,10 +394,22 @@ class Shopware_Controllers_Backend_Newsletter extends Enlight_Controller_Action 
      * Init template method
      *
      * Initializes the template using the mailing data.
+     *
+     * @param array $mailing
+     *
+     * @return Enlight_Template_Manager
      */
     public function initTemplate($mailing)
     {
         $template = clone Shopware()->Template();
+        $shop = Shopware()->Shop();
+        $inheritance = Shopware()->Container()->get('theme_inheritance');
+
+        $config = $inheritance->buildConfig(
+            $shop->getTemplate(),
+            $shop,
+            false
+        );
 
         $user = $this->getMailingUserByEmail(Shopware()->Config()->Mail);
         $template->assign('sUser', $user, true);
@@ -406,12 +420,11 @@ class Shopware_Controllers_Backend_Newsletter extends Enlight_Controller_Action 
         $template->assign('sCampaign', $this->getMailingDetails($mailing['id']), true);
         $template->assign('sConfig', Shopware()->Config());
         $template->assign('sBasefile', Shopware()->Config()->BaseFile);
-
-        $shop = Shopware()->Shop();
+        $template->assign('theme', $config);
 
         if (!$template->isCached($mailing['template'])) {
             $template->assign('sMailing', $mailing);
-            $template->assign('sStart', ($shop->getSecure() ? 'https://' : 'http://') . $shop->getHost() . $shop->getBasePath());
+            $template->assign('sStart', ($shop->getSecure() ? 'https://' : 'http://') . $shop->getHost() . $shop->getBaseUrl());
             $template->assign('sUserGroup', Shopware()->System()->sUSERGROUP);
             $template->assign('sUserGroupData', Shopware()->System()->sUSERGROUPDATA);
             $template->assign('sMainCategories', Shopware()->Modules()->Categories()->sGetMainCategories());
@@ -517,13 +530,15 @@ class Shopware_Controllers_Backend_Newsletter extends Enlight_Controller_Action 
      */
     public function getMailingEmails($id)
     {
-        $sql = 'SELECT groups, languageID FROM s_campaigns_mailings WHERE id=?';
+        $sql = 'SELECT `groups`, languageID FROM s_campaigns_mailings WHERE id=?';
         $mailing = Shopware()->Db()->fetchRow($sql, [$id]);
 
         if (empty($mailing)) {
             return false;
         }
 
+        $customerGroups = null;
+        $recipientGroups = null;
         $mailing['groups'] = unserialize($mailing['groups']);
 
         // The first element holds the selected customer groups for the current newsletter
@@ -591,7 +606,7 @@ class Shopware_Controllers_Backend_Newsletter extends Enlight_Controller_Action 
      *
      * @param int $voucherID
      *
-     * @return string
+     * @return string|false
      */
     public function getVoucherCode($voucherID)
     {
@@ -779,7 +794,7 @@ class Shopware_Controllers_Backend_Newsletter extends Enlight_Controller_Action 
             return null;
         }
 
-        /** @var $plugin \Shopware\Models\Plugin\Plugin */
+        /** @var \Shopware\Models\Plugin\Plugin $plugin */
         $plugin = Shopware()->Models()->find('\Shopware\Models\Plugin\Plugin', $pluginBootstrap->getId());
         if (!$plugin) {
             return null;

@@ -36,39 +36,6 @@ class Repository extends ModelRepository
     /**
      * Returns a query-object for all known and active payments
      *
-     * @deprecated use getActivePaymentsQuery instead
-     *
-     * @param null $filter
-     * @param null $order
-     * @param null $offset
-     * @param null $limit
-     *
-     * @return \Doctrine\ORM\Query
-     */
-    public function getPaymentsQuery($filter = null, $order = null, $offset = null, $limit = null)
-    {
-        return $this->getActivePaymentsQuery($filter, $order, $offset, $limit);
-    }
-
-    /**
-     * Helper method to create the query builder for the "getPaymentsQuery" function.
-     * This function can be hooked to modify the query builder of the query object.
-     *
-     * @deprecated use getActivePaymentsQueryBuilder instead
-     *
-     * @param null $filter
-     * @param null $order
-     *
-     * @return \Doctrine\ORM\QueryBuilder
-     */
-    public function getPaymentsQueryBuilder($filter = null, $order = null)
-    {
-        return $this->getActivePaymentsQueryBuilder($filter, $order);
-    }
-
-    /**
-     * Returns a query-object for all known and active payments
-     *
      * @param null $filter
      * @param null $order
      * @param null $offset
@@ -173,11 +140,16 @@ class Repository extends ModelRepository
     /**
      * Returns an instance of the \Doctrine\ORM\Query object which .....
      *
+     * @param array|null $filter
+     * @param array|null $order
+     * @param int|null   $offset
+     * @param int|null   $limit
+     *
      * @return \Doctrine\ORM\Query
      */
-    public function getListQuery()
+    public function getListQuery($filter = null, $order = null, $offset = null, $limit = null)
     {
-        $builder = $this->getListQueryBuilder();
+        $builder = $this->getListQueryBuilder($filter, $order, $offset, $limit);
 
         return $builder->getQuery();
     }
@@ -186,9 +158,14 @@ class Repository extends ModelRepository
      * Helper function to create the query builder for the "getListQuery" function.
      * This function can be hooked to modify the query builder of the query object.
      *
+     * @param array|null $filter
+     * @param array|null $order
+     * @param int|null   $offset
+     * @param int|null   $limit
+     *
      * @return \Doctrine\ORM\QueryBuilder
      */
-    public function getListQueryBuilder()
+    public function getListQueryBuilder($filter = null, $order = null, $offset = null, $limit = null)
     {
         $builder = $this->getEntityManager()->createQueryBuilder();
         $builder->select('payment', 'countries', 'shops', 'attribute')
@@ -197,13 +174,29 @@ class Repository extends ModelRepository
                 ->leftJoin('payment.attribute', 'attribute')
                 ->leftJoin('payment.shops', 'shops');
 
+        if ($filter !== null) {
+            $builder->addFilter($filter);
+        }
+
+        if ($order !== null) {
+            $builder->addOrderBy($order);
+        }
+
+        if ($offset !== null) {
+            $builder->setFirstResult($offset);
+        }
+
+        if ($limit !== null) {
+            $builder->setMaxResults($limit);
+        }
+
         return $builder;
     }
 
     /**
      * Returns an instance of the \Doctrine\ORM\Query object which .....
      *
-     * @param $paymentId
+     * @param int $paymentId
      *
      * @return \Doctrine\ORM\Query
      */
@@ -218,7 +211,7 @@ class Repository extends ModelRepository
      * Helper function to create the query builder for the "getAttributesQuery" function.
      * This function can be hooked to modify the query builder of the query object.
      *
-     * @param $paymentId
+     * @param int $paymentId
      *
      * @return \Doctrine\ORM\QueryBuilder
      */
@@ -226,7 +219,7 @@ class Repository extends ModelRepository
     {
         $builder = $this->getEntityManager()->createQueryBuilder();
         $builder->select(['attribute'])
-                      ->from('Shopware\Models\Attribute\Payment', 'attribute')
+                      ->from(\Shopware\Models\Attribute\Payment::class, 'attribute')
                       ->where('attribute.paymentId = ?1')
                       ->setParameter(1, $paymentId);
 

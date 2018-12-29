@@ -12,11 +12,11 @@
                 pth = document.location.pathname.replace("{url controller=index}", "/");
 
             url += url.indexOf('?') === -1 ? '?' : '&';
-            url += 'requestPage=' + encodeURI(pth);
+            url += 'requestPage=' + encodeURIComponent(pth);
             url += '&requestController=' + encodeURI("{$Controller|escape}");
             if(sid) { url += '&' + sid; }
             if(pid) { url += '&partner=' + pid; }
-            if(ref) { url += '&referer=' + encodeURI(ref); }
+            if(ref) { url += '&referer=' + encodeURIComponent(ref); }
             {if $sArticle.articleID}
             url += '&articleId=' + encodeURI("{$sArticle.articleID}");
             {/if}
@@ -41,10 +41,9 @@
                 document.cookie = 'x-ua-device=' + device + '; path=/';
             }
 
-            document.asyncReady(function(){
-                var frm = document.getElementById('refresh-statistics');
-                frm.src = url;
-            });
+            document
+                .getElementById('refresh-statistics')
+                .src = url;
         })(window, document);
     </script>
 {/block}

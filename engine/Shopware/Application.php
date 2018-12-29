@@ -26,16 +26,14 @@ use Shopware\Components\DependencyInjection\Container;
 /**
  * Shopware Application
  *
- * @category  Shopware
+ * @category Shopware
  *
  * @copyright Copyright (c) shopware AG (http://www.shopware.de)
  */
 class Shopware extends Enlight_Application
 {
     /**
-     * @Deprecated
-     *
-     * Will be removed in Shopware v5.6
+     * @Deprecated to be removed in 5.6
      *
      * Use the following parameters from the DIC instead:
      *      'shopware.release.version'
@@ -98,7 +96,7 @@ class Shopware extends Enlight_Application
 
         if (!$this->container->has($name)) {
             throw new Enlight_Exception(
-                'Method "' . get_class($this) . '::' . $name . '" not found failure',
+                sprintf('Method "%s::%s" not found failure', get_class($this), $name),
                 Enlight_Exception::METHOD_NOT_FOUND
             );
         }

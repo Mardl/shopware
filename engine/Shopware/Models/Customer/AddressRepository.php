@@ -134,7 +134,7 @@ class AddressRepository extends ModelRepository
             'state',
         ]);
 
-        $builder->from('Shopware\Models\Customer\Address', 'address')
+        $builder->from(\Shopware\Models\Customer\Address::class, 'address')
             ->leftJoin('address.country', 'country')
             ->leftJoin('address.state', 'state')
             ->leftJoin('address.attribute', 'attribute')
@@ -158,7 +158,7 @@ class AddressRepository extends ModelRepository
      */
     protected function getListQueryBuilder(array $filterBy = [], array $orderBy = [], $limit = null, $offset = null)
     {
-        /** @var $builder \Shopware\Components\Model\QueryBuilder */
+        /** @var \Shopware\Components\Model\QueryBuilder $builder */
         $builder = $this->getEntityManager()->createQueryBuilder();
 
         $builder->select([
@@ -168,7 +168,7 @@ class AddressRepository extends ModelRepository
             'state',
         ]);
 
-        $builder->from('Shopware\Models\Customer\Address', 'address')
+        $builder->from(\Shopware\Models\Customer\Address::class, 'address')
             ->leftJoin('address.country', 'country')
             ->leftJoin('address.state', 'state')
             ->leftJoin('address.attribute', 'attribute');

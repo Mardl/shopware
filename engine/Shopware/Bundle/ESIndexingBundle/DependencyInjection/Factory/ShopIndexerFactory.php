@@ -25,17 +25,18 @@
 namespace Shopware\Bundle\ESIndexingBundle\DependencyInjection\Factory;
 
 use Doctrine\Common\Collections\ArrayCollection;
+use IteratorAggregate;
 use Shopware\Bundle\ESIndexingBundle\DataIndexerInterface;
 use Shopware\Bundle\ESIndexingBundle\MappingInterface;
 use Shopware\Bundle\ESIndexingBundle\SettingsInterface;
 use Shopware\Bundle\ESIndexingBundle\ShopIndexer;
 use Shopware\Bundle\ESIndexingBundle\ShopIndexerInterface;
-use Shopware\Components\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class ShopIndexerFactory
 {
     /**
-     * @var Container
+     * @var ContainerInterface
      */
     private $container;
 
@@ -55,25 +56,25 @@ class ShopIndexerFactory
     private $settings;
 
     /**
-     * @param DataIndexerInterface[] $indexer
-     * @param MappingInterface[]     $mappings
-     * @param SettingsInterface[]    $settings
+     * @param IteratorAggregate $indexer
+     * @param IteratorAggregate $mappings
+     * @param IteratorAggregate $settings
      */
-    public function __construct(array $indexer, array $mappings, array $settings)
+    public function __construct(IteratorAggregate $indexer, IteratorAggregate $mappings, IteratorAggregate $settings)
     {
-        $this->indexer = $indexer;
-        $this->mappings = $mappings;
-        $this->settings = $settings;
+        $this->indexer = iterator_to_array($indexer, false);
+        $this->mappings = iterator_to_array($mappings, false);
+        $this->settings = iterator_to_array($settings, false);
     }
 
     /**
-     * @param Container $container
+     * @param ContainerInterface $container
      *
      * @throws \Exception
      *
      * @return ShopIndexerInterface
      */
-    public function factory(Container $container)
+    public function factory(ContainerInterface $container)
     {
         $this->container = $container;
 
@@ -86,6 +87,7 @@ class ShopIndexerFactory
             $this->container->get('shopware_elastic_search.backlog_reader'),
             $this->container->get('shopware_elastic_search.backlog_processor'),
             $this->container->get('shopware_elastic_search.index_factory'),
+            $this->container->get('shopware_elastic_search.console.console_evaluation_helper'),
             $indexer,
             $mappings,
             $settings,

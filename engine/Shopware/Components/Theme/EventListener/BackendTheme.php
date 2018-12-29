@@ -24,26 +24,26 @@
 
 namespace Shopware\Components\Theme\EventListener;
 
-use Shopware\Components\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Registers the current backend theme for the backend requests.
  *
- * @category  Shopware
+ * @category Shopware
  *
  * @copyright Copyright (c) shopware AG (http://www.shopware.de)
  */
 class BackendTheme
 {
     /**
-     * @var \Shopware\Components\DependencyInjection\Container
+     * @var ContainerInterface
      */
     private $container;
 
     /**
-     * @param Container $container
+     * @param ContainerInterface $container
      */
-    public function __construct(Container $container)
+    public function __construct(ContainerInterface $container)
     {
         $this->container = $container;
     }
@@ -55,7 +55,7 @@ class BackendTheme
      */
     public function registerBackendTheme(\Enlight_Controller_EventArgs $args)
     {
-        if ($args->getRequest()->getModuleName() != 'backend') {
+        if ($args->getRequest()->getModuleName() !== 'backend') {
             return;
         }
 

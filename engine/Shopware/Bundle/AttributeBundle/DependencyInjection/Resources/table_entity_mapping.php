@@ -186,6 +186,14 @@ return [
         'coreAttributes' => [],
         'dependingTables' => [],
     ],
+    's_core_shops_attributes' => [
+        'readOnly' => false,
+        'model' => 'Shopware\Models\Attribute\Shop',
+        'identifiers' => ['id', 'shopid'],
+        'foreignKey' => 'shopid',
+        'coreAttributes' => [],
+        'dependingTables' => [],
+    ],
     's_user_attributes' => [
         'readOnly' => false,
         'model' => 'Shopware\Models\Attribute\Customer',
@@ -193,26 +201,6 @@ return [
         'foreignKey' => 'userid',
         'coreAttributes' => [],
         'dependingTables' => [],
-    ],
-    's_user_billingaddress_attributes' => [
-        'readOnly' => false,
-        'model' => 'Shopware\Models\Attribute\CustomerBilling',
-        'identifiers' => ['id', 'billingid'],
-        'foreignKey' => 'billingid',
-        'coreAttributes' => ['text1', 'text2', 'text3', 'text4', 'text5', 'text6'],
-        'dependingTables' => [
-            's_user_addresses_attributes', 's_user_shippingaddress_attributes', 's_order_billingaddress_attributes', 's_order_shippingaddress_attributes',
-        ],
-    ],
-    's_user_shippingaddress_attributes' => [
-        'readOnly' => false,
-        'model' => 'Shopware\Models\Attribute\CustomerShipping',
-        'identifiers' => ['id', 'shippingid'],
-        'foreignKey' => 'shippingid',
-        'coreAttributes' => ['text1', 'text2', 'text3', 'text4', 'text5', 'text6'],
-        'dependingTables' => [
-            's_user_addresses_attributes', 's_user_billingaddress_attributes', 's_order_billingaddress_attributes', 's_order_shippingaddress_attributes',
-        ],
     ],
     's_order_basket_attributes' => [
         'readOnly' => false,
@@ -245,7 +233,7 @@ return [
         'foreignKey' => 'billingid',
         'coreAttributes' => ['text1', 'text2', 'text3', 'text4', 'text5', 'text6'],
         'dependingTables' => [
-            's_user_addresses_attributes', 's_user_billingaddress_attributes', 's_user_shippingaddress_attributes', 's_order_shippingaddress_attributes',
+            's_user_addresses_attributes', 's_order_shippingaddress_attributes',
         ],
     ],
     's_order_shippingaddress_attributes' => [
@@ -255,7 +243,7 @@ return [
         'foreignKey' => 'shippingid',
         'coreAttributes' => ['text1', 'text2', 'text3', 'text4', 'text5', 'text6'],
         'dependingTables' => [
-            's_user_addresses_attributes', 's_user_billingaddress_attributes', 's_user_shippingaddress_attributes', 's_order_billingaddress_attributes',
+            's_user_addresses_attributes', 's_order_billingaddress_attributes',
         ],
     ],
     's_order_documents_attributes' => [
@@ -369,7 +357,7 @@ return [
         'foreignKey' => 'address_id',
         'coreAttributes' => ['text1', 'text2', 'text3', 'text4', 'text5', 'text6'],
         'dependingTables' => [
-            's_user_billingaddress_attributes', 's_user_shippingaddress_attributes', 's_order_billingaddress_attributes', 's_order_shippingaddress_attributes',
+            's_order_billingaddress_attributes', 's_order_shippingaddress_attributes',
         ],
     ],
     's_customer_streams_attributes' => [
@@ -377,6 +365,14 @@ return [
         'model' => 'Shopware\Models\CustomerStream\CustomerStream',
         'identifiers' => ['id', 'streamid'],
         'foreignKey' => 'streamid',
+        'coreAttributes' => [],
+        'dependingTables' => [],
+    ],
+    's_articles_notification_attributes' => [
+        'readOnly' => false,
+        'model' => 'Shopware\Models\Article\ArticleNotification',
+        'identifiers' => ['id', 'notificationid'],
+        'foreignKey' => 'notificationid',
         'coreAttributes' => [],
         'dependingTables' => [],
     ],

@@ -58,6 +58,7 @@ class Settings extends ModelEntity
      * Unique identifier
      *
      * @var int
+     *
      * @ORM\Id
      * @ORM\Column(name="id", type="integer", nullable=false)
      * @ORM\GeneratedValue(strategy="IDENTITY")
@@ -68,6 +69,7 @@ class Settings extends ModelEntity
      * Id of the album
      *
      * @var int
+     *
      * @ORM\Column(name="albumID", type="integer", nullable=false)
      */
     private $albumId;
@@ -76,6 +78,7 @@ class Settings extends ModelEntity
      * Flag whether thumbnails will be created on this album.
      *
      * @var int
+     *
      * @ORM\Column(name="create_thumbnails", type="integer", nullable=false)
      */
     private $createThumbnails;
@@ -84,6 +87,7 @@ class Settings extends ModelEntity
      * Sizes of the thumbnails. Format => WIDTHxHEIGHT;
      *
      * @var string
+     *
      * @ORM\Column(name="thumbnail_size", type="text", nullable=false)
      */
     private $thumbnailSize;
@@ -92,6 +96,7 @@ class Settings extends ModelEntity
      * Css class for the album
      *
      * @var string
+     *
      * @ORM\Column(name="icon", type="string", length=50, nullable=false)
      */
     private $icon;
@@ -100,6 +105,7 @@ class Settings extends ModelEntity
      * Generate high dpi thumbnails
      *
      * @var bool
+     *
      * @ORM\Column(name="thumbnail_high_dpi", type="boolean", nullable=false)
      */
     private $thumbnailHighDpi;
@@ -108,14 +114,16 @@ class Settings extends ModelEntity
      * Thumbnail quality
      *
      * @var int
+     *
      * @ORM\Column(name="thumbnail_quality", type="integer", nullable=false)
      */
     private $thumbnailQuality;
 
     /**
-     * high dpi thumbnails quality
+     * High DPI thumbnails quality
      *
      * @var int
+     *
      * @ORM\Column(name="thumbnail_high_dpi_quality", type="integer", nullable=false)
      */
     private $thumbnailHighDpiQuality;
@@ -147,7 +155,7 @@ class Settings extends ModelEntity
     /**
      * Sets the icon css class
      *
-     * @param $icon
+     * @param string $icon
      *
      * @return \Shopware\Models\Media\Settings
      */
@@ -213,22 +221,6 @@ class Settings extends ModelEntity
     }
 
     /**
-     * If the album settings updated and the thumbnail configuration changed,
-     * the new configuration have to be executed on each assigned media.
-     * To notify the configuration change the model gets the entity change set
-     * over the doctrine unit of work instance.
-     * When update is checked whether the old thumbnails should be deleted,
-     * and whether new thumbnail files must be generated.
-     *
-     * @ORM\PreUpdate
-     *
-     * @deprecated
-     */
-    public function onUpdate()
-    {
-    }
-
-    /**
      * @return \Shopware\Models\Media\Album
      */
     public function getAlbum()
@@ -237,7 +229,7 @@ class Settings extends ModelEntity
     }
 
     /**
-     * @param  $album
+     * @param \Shopware\Models\Media\Album $album
      */
     public function setAlbum($album)
     {

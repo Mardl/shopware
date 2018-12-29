@@ -33,7 +33,7 @@ use Shopware\Bundle\StoreFrontBundle\Gateway;
 use Shopware\Bundle\StoreFrontBundle\Struct;
 
 /**
- * @category  Shopware
+ * @category Shopware
  *
  * @copyright Copyright (c) shopware AG (http://www.shopware.de)
  */
@@ -154,7 +154,7 @@ class VariantCheapestPriceGateway implements Gateway\VariantCheapestPriceGateway
             ->setParameter(':variants', $variantIds, Connection::PARAM_INT_ARRAY)
             ->setParameter(':priceGroupCustomerGroup', $customerGroup->getId());
 
-        /** @var $statement \Doctrine\DBAL\Driver\ResultStatement */
+        /** @var \Doctrine\DBAL\Driver\ResultStatement $statement */
         $statement = $mainQuery->execute();
 
         $data = $statement->fetchAll(\PDO::FETCH_ASSOC);
@@ -176,7 +176,7 @@ class VariantCheapestPriceGateway implements Gateway\VariantCheapestPriceGateway
         /** @var VariantCondition $condition */
         $tableKey = $condition->getName();
 
-        $suffix = crc32(json_encode($condition));
+        $suffix = md5(json_encode($condition));
 
         $where = [];
 
@@ -309,7 +309,7 @@ class VariantCheapestPriceGateway implements Gateway\VariantCheapestPriceGateway
         $cheapestPriceIdQuery = $this->connection->createQueryBuilder();
 
         $joinCondition = ' cheapestPrices.articleID = details.articleID ';
-        /** @var $condition VariantCondition */
+        /** @var VariantCondition $condition */
         foreach ($criteria->getConditionsByClass(VariantCondition::class) as $condition) {
             if ($condition->expandVariants()) {
                 $joinCondition = $this->joinVariantCondition($mainQuery, $cheapestPriceIdQuery, $cheapestPriceQuery, $condition) . $joinCondition;
@@ -321,7 +321,7 @@ class VariantCheapestPriceGateway implements Gateway\VariantCheapestPriceGateway
          * Get the cheapest price of the fallback customer group, if no price of the current customer group is available.
          */
         $countSubQuery = clone $cheapestPriceQuery;
-        $graduation = 'IF(prices.id IS NOT NULL, prices.from = 1, defaultPrices.to = 1)';
+        $graduation = 'IF(prices.id IS NOT NULL, prices.from = 1, defaultPrices.from = 1)';
         if ($this->config->get('useLastGraduationForCheapestPrice')) {
             $graduation = "CASE WHEN prices.id IS NOT NULL THEN
                                 (IF(priceGroup.id IS NOT NULL, prices.from = 1, prices.to = 'beliebig'))

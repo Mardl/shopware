@@ -38,7 +38,7 @@ class Shopware_Plugins_Core_ViewportForward_Bootstrap extends Shopware_Component
     {
         $request = $args->getSubject()->Request();
 
-        if ($request->getModuleName() && 'frontend' !== $request->getModuleName()) {
+        if ($request->getModuleName() && $request->getModuleName() !== 'frontend') {
             return;
         }
 
@@ -54,15 +54,22 @@ class Shopware_Plugins_Core_ViewportForward_Bootstrap extends Shopware_Component
                     }
                 }
 
-                if ($request->getParam('sAction') && 'doSale' === $request->getParam('sAction')) {
+                if ($request->getParam('sAction') && $request->getParam('sAction') === 'doSale') {
                     $request->setControllerName('checkout')->setActionName('finish')->setDispatched(false);
                 } else {
                     $request->setControllerName('checkout')->setActionName('confirm')->setDispatched(false);
                 }
                 break;
             case 'cat':
-            case 'supplier':
                 $request->setControllerName('listing')->setDispatched(false);
+                break;
+            case 'supplier':
+                $url = $args->getSubject()->Router()->assemble([
+                        'controller' => 'listing',
+                        'action' => 'manufacturer',
+                        'sSupplier' => $request->getParam('sSupplier'),
+                ]);
+                $args->getSubject()->Response()->setRedirect($url, 301);
                 break;
             case 'captcha':
                 $request->setModuleName('widgets')->setControllerName('captcha')->setDispatched(false);
@@ -96,7 +103,7 @@ class Shopware_Plugins_Core_ViewportForward_Bootstrap extends Shopware_Component
                 $request->setControllerName('forms')->setActionName('index')->setDispatched(false);
                 break;
             case 'ticketdirect':
-                $request->setControllerName('ticket')->setActionName('direct')->setDispatched(false);
+                $request->setControllerName('forms')->setActionName('direct')->setDispatched(false);
                 break;
             default:
                 break;

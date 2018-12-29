@@ -41,7 +41,7 @@ use Symfony\Component\Console\Output\OutputInterface;
  * This class is used as a command to generate thumbnails from media albums.
  * If no album is defined, thumbnails from all album medias are created.
  *
- * @category  Shopware
+ * @category Shopware
  *
  * @copyright Copyright (c) shopware AG (http://www.shopware.de)
  */
@@ -122,7 +122,7 @@ class ThumbnailGenerateCommand extends ShopwareCommand
         $builder = $em->createQueryBuilder();
         $builder
             ->select(['album', 'settings'])
-            ->from('Shopware\Models\Media\Album', 'album')
+            ->from(\Shopware\Models\Media\Album::class, 'album')
             ->innerJoin('album.settings', 'settings', 'WITH', 'settings.createThumbnails = 1');
 
         if (!empty($albumId)) {
@@ -136,7 +136,7 @@ class ThumbnailGenerateCommand extends ShopwareCommand
 
     protected function printExitMessage()
     {
-        if (0 === count($this->errors)) {
+        if (count($this->errors) === 0) {
             $this->output->writeln('<info>Thumbnail generation finished successfully</info>');
 
             return;
@@ -158,13 +158,10 @@ class ThumbnailGenerateCommand extends ShopwareCommand
     {
         $this->output->writeln("Generating Thumbnails for Album {$album->getName()} (ID: {$album->getId()})");
 
-        /**
-         * @var ModelManager
-         */
+        /** @var ModelManager */
         $em = $this->getContainer()->get('models');
-        /**
-         * @var Repository
-         */
+
+        /** @var Repository */
         $repository = $em->getRepository(Media::class);
 
         $query = $repository->getAlbumMediaQuery($album->getId());
@@ -173,11 +170,10 @@ class ThumbnailGenerateCommand extends ShopwareCommand
         $total = $paginator->count();
 
         $progressBar = new ProgressBar($this->output, $total);
+        $progressBar->setRedrawFrequency(10);
         $progressBar->start();
 
-        /*
-         * @var Media
-         */
+        /* @var Media $media */
         foreach ($paginator->getIterator() as $media) {
             try {
                 $this->createMediaThumbnails($media);
@@ -190,7 +186,7 @@ class ThumbnailGenerateCommand extends ShopwareCommand
 
         $progressBar->finish();
 
-        // force newline when processing the next album
+        // Force newline when processing the next album
         $this->output->writeln('');
     }
 
@@ -204,7 +200,7 @@ class ThumbnailGenerateCommand extends ShopwareCommand
     private function createMediaThumbnails(Media $media)
     {
         if (!$this->imageExists($media)) {
-            throw new Exception('Base image file does not exist: ' . $media->getPath());
+            throw new \Exception(sprintf('Base image file "%s" does not exist', $media->getPath()));
         }
 
         $thumbnails = $media->getThumbnailFilePaths();
@@ -226,9 +222,10 @@ class ThumbnailGenerateCommand extends ShopwareCommand
      */
     private function thumbnailExists($thumbnailPath)
     {
-        $mediaService = Shopware()->Container()->get('shopware_media.media_service');
+        $mediaService = $this->container->get('shopware_media.media_service');
+        $projectDir = $this->container->getParameter('shopware.app.rootdir');
 
-        return $mediaService->has(Shopware()->DocPath() . $thumbnailPath);
+        return $mediaService->has($projectDir . $thumbnailPath);
     }
 
     /**
@@ -240,8 +237,9 @@ class ThumbnailGenerateCommand extends ShopwareCommand
      */
     private function imageExists(Media $media)
     {
-        $mediaService = Shopware()->Container()->get('shopware_media.media_service');
+        $mediaService = $this->container->get('shopware_media.media_service');
+        $projectDir = $this->container->getParameter('shopware.app.rootdir');
 
-        return $mediaService->has(Shopware()->DocPath() . DIRECTORY_SEPARATOR . $media->getPath());
+        return $mediaService->has($projectDir . $media->getPath());
     }
 }

@@ -75,7 +75,7 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
             },
             pseudoPrice: {
                 header: '{s name=variant/list/column/pseudoprice}Pseudoprice{/s}',
-                undefined: '{s name=variant/list/column/pseudoprice_undefined}Undefined{/s}',
+                undefined: '{s name=variant/list/column/pseudoprice_undefined}Undefined{/s}'
             },
             standard: '{s name=variant/list/column/standard}Preselection{/s}',
             active: '{s name=variant/list/column/active}Active{/s}',
@@ -98,11 +98,16 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
             errorMessage: '{s name=article_saved/error_message}An error has occurred while saving the article:{/s}',
             errorTitle: '{s name=article_saved/error_title}Error{/s}',
             ordernumberNotMatch: '{s name=detail/base/regex_number_validation}The inserted article number contains illegal characters!{/s}'
+        },
+        graduatedPrices: {
+            title: '{s name=graduatedPrices/title}{/s}',
+            confirm: '{s name=graduatedPrices/confirm}{/s}'
         }
     },
 
     /**
      * Initialize the Shopware.apps.Article.view.variant.List and defines the necessary default configuration
+     *
      * @return void
      */
     initComponent:function () {
@@ -111,6 +116,9 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
 
         mainWindow.on('storesLoaded', me.onStoresLoaded, me);
         me.configuratorGroupStore = mainWindow.configuratorGroupStore;
+
+        // Since we don't allow any column to be sorted, we disable the possibility to do so.
+        me.sortableColumns = false;
 
         me.registerEvents();
         me.columns = me.getColumns(true);
@@ -136,8 +144,8 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
             autoCancel: true
         });
 
-        //register listener on the edit event to save the record and convert the price value. Without
-        //this listener the insert price "10,55" would be become "1055"
+        // Register listener on the edit event to save the record and convert the price value. Without
+        // this listener the insert price "10,55" would be become "1055"
         me.cellEditor.on('edit', function(editor, e) {
             if (e.value && e.field === 'price') {
                 var newPrice = Ext.Number.from(e.value);
@@ -147,7 +155,17 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
                 oldPrice = Ext.Number.toFixed(oldPrice, 2);
 
                 if (newPrice != oldPrice) {
-                    me.fireEvent('editVariantPrice', e.record, newPrice);
+                    if (e.record.getPriceStore.getCount() > 1) {
+                        Ext.Msg.confirm(me.snippets.graduatedPrices.title, me.snippets.graduatedPrices.confirm, function (answer) {
+                            if (answer === 'yes') {
+                                me.fireEvent('editVariantPrice', e.record, newPrice);
+                            } else {
+                                e.record.reject();
+                            }
+                        });
+                    } else {
+                        me.fireEvent('editVariantPrice', e.record, newPrice);
+                    }
                 }
 
             } else if (e.field === 'pseudoPrice') {
@@ -167,18 +185,32 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
                 }
 
                 if (newPseudoPrice !== oldPseudoPrice || newPseudoPrice === 0.00) {
-                    me.fireEvent('editVariantPseudoPrice', e.record, newPseudoPrice);
+                    if (e.record.getPriceStore.getCount() > 1) {
+                        Ext.Msg.confirm(me.snippets.graduatedPrices.title, me.snippets.graduatedPrices.confirm, function (answer) {
+                            if (answer === 'yes') {
+                                me.fireEvent('editVariantPseudoPrice', e.record, newPseudoPrice);
+                            } else {
+                                e.record.reject();
+                            }
+                        });
+                    } else {
+                        me.fireEvent('editVariantPseudoPrice', e.record, newPseudoPrice);
+                    }
                 }
 
             } else {
                 var oldValue = e.originalValue,
                     newValue = e.value;
 
-                //the number field is a mapping field of the variant. so we have to map this field
+                // The number field is a mapping field of the variant. so we have to map this field
                 if (e.field === 'details.number') {
                     oldValue = e.record.get('number');
                     newValue = e.record.get('details.number') || e.record.get('number')
                 }
+                
+               if (e.field === 'details.inStock') {
+                   oldValue = e.record.get('inStock');
+               }
 
                 if(e.field === 'details.number' &&  (!newValue || !newValue.match(/^[a-zA-Z0-9-_. ]+$/))) {
                     Shopware.Notification.createGrowlMessage(me.snippets.saved.errorTitle, me.snippets.saved.ordernumberNotMatch, me.snippets.growlMessage);
@@ -193,6 +225,10 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
 
                 if (e.field === 'details.number') {
                     e.record.set('number', newValue);
+                }
+                
+                if (e.field === 'details.inStock') {
+                    e.record.set('inStock', newValue);
                 }
 
                 me.fireEvent('saveVariant', e.record);
@@ -319,8 +355,8 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
         standardColumns = [
             {
                 header: me.snippets.columns.stock,
-                dataIndex: 'inStock',
-                sortable: false,
+                dataIndex: 'details.inStock',
+                sortable: true,
                 flex: 1,
                 renderer: me.stockColumnRenderer,
                 editor: {
@@ -419,6 +455,7 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
 
     /**
      * Creates the grid columns for the dynamic configurator groups.
+     *
      * @return [array] An array of column objects.
      */
     createDynamicColumns: function() {
@@ -445,6 +482,7 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
     /**
      * Renderer function of the price column. If a scale price defined, the function returns the first price value
      * with an additional flag "from*" to display the user that this variant has scale prices.
+     *
      * @param value
      * @param metaData
      * @param record
@@ -467,6 +505,7 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
 
     /**
      * Renderer function of the pseudoPrice column.
+     *
      * @param value
      * @param metaData
      * @param record
@@ -485,6 +524,7 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
 
     /**
      * Renderer function of the number column.
+     *
      * @param value
      * @param metaData
      * @param record
@@ -496,8 +536,10 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
             return '';
         }
     },
+
     /**
      * Renderer function of the stock column.
+     *
      * @param value
      * @param metaData
      * @param record
@@ -509,8 +551,6 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
             return '';
         }
     },
-
-
 
     /**
      * Renderer function for each configurator group column
@@ -542,20 +582,18 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
      * @return [Ext.selection.CheckboxModel] grid selection model
      */
     getGridSelModel:function () {
-        var me = this;
-
         return Ext.create('Ext.selection.CellModel');
     },
 
-
     /**
      * Creates the grid toolbar with the different buttons.
+     *
      * @return [Ext.toolbar.Toolbar] grid toolbar
      */
     getToolbar:function () {
         var me = this;
 
-        //creates the price button to apply the standard prices of the main article on all variants.
+        // Creates the price button to apply the standard prices of the main article on all variants.
         me.applyDataButton = Ext.create('Ext.button.Button', {
             iconCls:'sprite-money--arrow',
             text: me.snippets.toolbar.data,
@@ -565,7 +603,7 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
             }
         });
 
-        //creates the text field for the order number syntax.
+        // Creates the text field for the order number syntax.
         me.orderNumberField = Ext.create('Ext.form.field.Text', {
             emptyText: me.snippets.toolbar.orderNumber.empty,
             fieldLabel: me.snippets.toolbar.orderNumber.label,
@@ -574,7 +612,7 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
             name: 'numberSyntax'
         });
 
-        //creates the button to regenerate all order numbers for the article variants.
+        // Creates the button to regenerate all order numbers for the article variants.
         me.orderNumberButton = Ext.create('Ext.button.Button', {
             iconCls: 'sprite-key--arrow',
             text: me.snippets.toolbar.orderNumber.button,
@@ -584,7 +622,7 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
             }
         });
 
-        //creates the search field to filter the listing.
+        // Creates the search field to filter the listing.
         me.searchField = Ext.create('Ext.form.field.Text', {
             name:'searchfield',
             cls:'searchfield',
@@ -621,7 +659,7 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
     /**
      * Creates the paging toolbar for the grid to allow store paging. The paging toolbar uses the same store as the Grid
      *
-     * @return Ext.toolbar.Paging The paging toolbar for the customer grid
+     * @return [Ext.toolbar.Paging] The paging toolbar for the customer grid
      */
     getPagingBar:function () {
         var me = this;
@@ -633,6 +671,10 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
         });
     },
 
+    /**
+     * @param article
+     * @param [array] stores
+     */
     onStoresLoaded: function(article, stores) {
         var me = this;
 
@@ -640,7 +682,6 @@ Ext.define('Shopware.apps.Article.view.variant.List', {
         me.configuratorGroupStore = stores['configuratorGroups'];
         me.reconfigure(me.getStore(), me.getColumns(true));
     }
-
 });
 //{/block}
 

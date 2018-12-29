@@ -35,7 +35,7 @@ use Shopware\Models\Shop;
  * contains a getDirectory function which
  * returns the Theme directory of the passed shop template.
  *
- * @category  Shopware
+ * @category Shopware
  *
  * @copyright Copyright (c) shopware AG (http://www.shopware.de)
  */
@@ -289,7 +289,7 @@ class PathResolver
      */
     public function formatPathToUrl($path, Shop\Shop $shop)
     {
-        return str_replace(rtrim($this->rootDir, '/'), $shop->getBasePath(), $path);
+        return str_replace([rtrim($this->rootDir, '/\\'), '\\', '//'], [$shop->getBasePath(), '/', '/'], $path);
     }
 
     /**

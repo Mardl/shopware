@@ -63,16 +63,25 @@ class Enlight_Template_Manager extends Smarty
      * Template, compile, plugin, cache and config directory.
      *
      * @param   null|array|Enlight_Config $options
+     * @param   array                     $backendOptions
      */
-    public function __construct($options = null)
+    public function __construct($options = null, $backendOptions = [])
     {
         // self pointer needed by some other class methods
         $this->smarty = $this;
 
         $this->start_time = microtime(true);
 
-        $this->_file_perms = 0666 & ~umask();
-        $this->_dir_perms = 0777 & ~umask();
+        if (!isset($backendOptions['cache_file_perm'])) {
+            $backendOptions['cache_file_perm'] = 0666 & ~umask();
+        }
+
+        if (!isset($backendOptions['hashed_directory_perm'])) {
+            $backendOptions['hashed_directory_perm'] = 0777 & ~umask();
+        }
+
+        $this->_file_perms = $backendOptions['cache_file_perm'];
+        $this->_dir_perms = $backendOptions['hashed_directory_perm'];
 
         // set default dirs
         $this->setTemplateDir('.' . DS . 'templates' . DS)
@@ -286,5 +295,27 @@ class Enlight_Template_Manager extends Smarty
             }
         }
         return array_merge($after, $pluginDirs, $before);
+    }
+
+    /**
+     * Technically smarty security is enabled, if a security policy is set for the template manager instance. The
+     * security policy holds a reference to the template manager instance. When cloning the template manager, the
+     * reference of the security_policy to the Smarty instance has be updated to the new cloned Smarty instance.
+     *
+     * Without doing this, every self::fetch() after a directory was added with self::addTemplateDir(), would lead to a
+     * SmartyException with message 'directory [...] not allowed by security setting'. This is because
+     * the security_policy still holds a reference to the old Smarty instance that does not know this new directories
+     * as template sources.
+     *
+     * The security_policy is also cloned so other instances of the Enlight_Template_Manager do not get affected.
+     */
+    public function __clone()
+    {
+        parent::__clone();
+
+        if ($this->security_policy !== null) {
+            $this->security_policy = clone $this->security_policy;
+            $this->security_policy->smarty = $this;
+        }
     }
 }

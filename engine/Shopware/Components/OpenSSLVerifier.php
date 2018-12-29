@@ -38,14 +38,13 @@ class OpenSSLVerifier
 
     /**
      * @param string $publicKey
+     *
+     * @throws \InvalidArgumentException
      */
     public function __construct($publicKey)
     {
         if (!is_readable($publicKey)) {
-            throw new \InvalidArgumentException(sprintf(
-                'Public keyfile (%s) not readable',
-                $publicKey
-            ));
+            throw new \InvalidArgumentException(sprintf('Public keyfile "%s" not readable', $publicKey));
         }
 
         $this->publicKeyPath = $publicKey;
@@ -73,15 +72,17 @@ class OpenSSLVerifier
 
         $signature = base64_decode($signature);
 
-        // state whether signature is okay or not
+        // State whether signature is okay or not
         $ok = openssl_verify($message, $signature, $pubkeyid);
 
-        if ($ok == 1) {
+        if ($ok === 1) {
             return true;
-        } elseif ($ok == 0) {
+        }
+        if ($ok === 0) {
             return false;
         }
-        while ($errors[] = openssl_error_string());
+        while ($errors[] = openssl_error_string()) {
+        }
         throw new \RuntimeException(sprintf("Error during private key read: \n%s", implode("\n", $errors)));
     }
 

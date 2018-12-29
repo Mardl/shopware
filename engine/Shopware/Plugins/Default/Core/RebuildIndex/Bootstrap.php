@@ -21,11 +21,10 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
-
 use Shopware\Bundle\SearchBundleDBAL\SearchTerm\SearchIndexerInterface;
 
 /**
- * @category  Shopware
+ * @category Shopware
  *
  * @copyright Copyright (c) shopware AG (http://www.shopware.de)
  */
@@ -147,7 +146,7 @@ class Shopware_Plugins_Core_RebuildIndex_Bootstrap extends Shopware_Components_P
         $this->RewriteTable()->sCreateRewriteTableCleanup();
 
         foreach ($shops as $shopId) {
-            /** @var $repository \Shopware\Models\Shop\Repository */
+            /** @var \Shopware\Models\Shop\Repository $repository */
             $repository = Shopware()->Models()->getRepository('Shopware\Models\Shop\Shop');
             $shop = $repository->getActiveById($shopId);
             if ($shop === null) {
@@ -178,10 +177,16 @@ class Shopware_Plugins_Core_RebuildIndex_Bootstrap extends Shopware_Components_P
             $this->RewriteTable()->sCreateRewriteTableCampaigns();
             $this->RewriteTable()->sCreateRewriteTableContent();
             $this->RewriteTable()->sCreateRewriteTableBlog();
-            $this->RewriteTable()->sCreateRewriteTableSuppliers(null, null, $context);
+            $this->RewriteTable()->createManufacturerUrls($context);
             $this->RewriteTable()->sCreateRewriteTableStatic();
 
-            Shopware()->Events()->notify('Shopware_CronJob_RefreshSeoIndex_CreateRewriteTable');
+            Shopware()->Events()->notify(
+                'Shopware_CronJob_RefreshSeoIndex_CreateRewriteTable',
+                [
+                    'shopContext' => $context,
+                    'cachedTime' => $currentTime,
+                ]
+            );
         }
 
         return true;
@@ -202,7 +207,7 @@ class Shopware_Plugins_Core_RebuildIndex_Bootstrap extends Shopware_Components_P
             return true;
         }
 
-        /* @var $indexer SearchIndexerInterface */
+        /* @var SearchIndexerInterface $indexer */
         $indexer = $this->get('shopware_searchdbal.search_indexer');
         $indexer->build();
 

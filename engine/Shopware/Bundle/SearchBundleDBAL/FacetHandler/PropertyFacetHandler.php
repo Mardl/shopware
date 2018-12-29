@@ -42,7 +42,7 @@ use Shopware\Bundle\StoreFrontBundle\Struct\ShopContextInterface;
 use Shopware\Components\QueryAliasMapper;
 
 /**
- * @category  Shopware
+ * @category Shopware
  *
  * @copyright Copyright (c) shopware AG (http://www.shopware.de)
  */
@@ -105,7 +105,7 @@ class PropertyFacetHandler implements PartialFacetHandlerInterface
     ) {
         $properties = $this->getProperties($context, $reverted);
 
-        if (null === $properties) {
+        if ($properties === null) {
             return null;
         }
         $actives = $this->getFilteredValues($criteria);
@@ -117,18 +117,20 @@ class PropertyFacetHandler implements PartialFacetHandlerInterface
      * @param Struct\ShopContextInterface $context
      * @param Criteria                    $queryCriteria
      *
-     * @return Struct\Property\Set[]
+     * @return Struct\Property\Set[]|null
      */
     protected function getProperties(Struct\ShopContextInterface $context, Criteria $queryCriteria)
     {
         $query = $this->queryBuilderFactory->createQuery($queryCriteria, $context);
         $this->rebuildQuery($query);
 
-        /** @var $statement \Doctrine\DBAL\Driver\ResultStatement */
+        /** @var \Doctrine\DBAL\Driver\ResultStatement $statement */
         $statement = $query->execute();
 
-        /** @var $facet Facet\PropertyFacet */
-        $valueIds = $statement->fetchAll(\PDO::FETCH_COLUMN);
+        $propertyData = $statement->fetchAll();
+
+        $valueIds = array_column($propertyData, 'id');
+        $filterGroupIds = array_keys(array_flip(array_column($propertyData, 'filterGroupId')));
 
         if (empty($valueIds)) {
             return null;
@@ -136,7 +138,8 @@ class PropertyFacetHandler implements PartialFacetHandlerInterface
 
         $properties = $this->propertyGateway->getList(
             $valueIds,
-            $context
+            $context,
+            $filterGroupIds
         );
 
         return $properties;
@@ -150,8 +153,12 @@ class PropertyFacetHandler implements PartialFacetHandlerInterface
         $query->resetQueryPart('orderBy');
         $query->resetQueryPart('groupBy');
         $query->innerJoin('product', 's_filter_articles', 'productProperty', 'productProperty.articleID = product.id');
+        $query->innerJoin('product', 's_filter', 'propertySet', 'propertySet.id = product.filtergroupID');
         $query->groupBy('productProperty.valueID');
         $query->select('productProperty.valueID as id');
+
+        $query->addSelect('product.filtergroupID as filterGroupId');
+        $query->orderBy('propertySet.position');
     }
 
     /**

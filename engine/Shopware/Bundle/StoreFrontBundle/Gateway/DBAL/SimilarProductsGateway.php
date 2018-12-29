@@ -29,32 +29,23 @@ use Shopware\Bundle\StoreFrontBundle\Gateway;
 use Shopware\Bundle\StoreFrontBundle\Struct;
 
 /**
- * @category  Shopware
+ * @category Shopware
  *
  * @copyright Copyright (c) shopware AG (http://www.shopware.de)
  */
 class SimilarProductsGateway implements Gateway\SimilarProductsGatewayInterface
 {
     /**
-     * @var \Shopware\Components\Model\ModelManager
+     * @var Connection
      */
     private $connection;
 
     /**
-     * @var \Shopware_Components_Config
+     * @param Connection $connection
      */
-    private $config;
-
-    /**
-     * @param Connection                  $connection
-     * @param \Shopware_Components_Config $config
-     */
-    public function __construct(
-        Connection $connection,
-        \Shopware_Components_Config $config
-    ) {
+    public function __construct(Connection $connection)
+    {
         $this->connection = $connection;
-        $this->config = $config;
     }
 
     /**
@@ -88,7 +79,7 @@ class SimilarProductsGateway implements Gateway\SimilarProductsGatewayInterface
             ->where('product.id IN (:ids)')
             ->setParameter(':ids', $ids, Connection::PARAM_INT_ARRAY);
 
-        /** @var $statement \Doctrine\DBAL\Driver\ResultStatement */
+        /** @var \Doctrine\DBAL\Driver\ResultStatement $statement */
         $statement = $query->execute();
 
         $data = $statement->fetchAll(\PDO::FETCH_GROUP);
@@ -99,66 +90,5 @@ class SimilarProductsGateway implements Gateway\SimilarProductsGatewayInterface
         }
 
         return $related;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getByCategory(Struct\BaseProduct $product, Struct\ShopContextInterface $context)
-    {
-        $products = $this->getListByCategory([$product], $context);
-
-        return array_shift($products);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getListByCategory($products, Struct\ShopContextInterface $context)
-    {
-        if (!$this->config->offsetExists('similarLimit') || $this->config->get('similarLimit') <= 0) {
-            return [];
-        }
-
-        $ids = [];
-        foreach ($products as $product) {
-            $ids[] = $product->getId();
-        }
-        $ids = array_unique($ids);
-
-        $categoryId = 1;
-        if ($context->getShop() && $context->getShop()->getCategory()) {
-            $categoryId = $context->getShop()->getCategory()->getId();
-        }
-
-        $query = $this->connection->createQueryBuilder();
-
-        $query->select([
-            'main.articleID',
-            "GROUP_CONCAT(subVariant.ordernumber SEPARATOR '|') as similar",
-        ]);
-
-        $query->from('s_articles_categories', 'main')
-            ->innerJoin('main', 's_articles_categories', 'sub', 'sub.categoryID = main.categoryID AND sub.articleID != main.articleID')
-            ->innerJoin('sub', 's_articles_details', 'subVariant', 'subVariant.articleID = sub.articleID AND subVariant.kind = 1')
-            ->innerJoin('main', 's_categories', 'category', 'category.id = sub.categoryID AND category.id = main.categoryID')
-            ->where('main.articleID IN (:ids)')
-            ->andWhere('category.path LIKE :path')
-            ->groupBy('main.articleID')
-            ->setParameter(':ids', $ids, Connection::PARAM_INT_ARRAY)
-            ->setParameter(':path', '%|' . (int) $categoryId . '|');
-
-        $statement = $query->execute();
-        $data = $statement->fetchAll(\PDO::FETCH_ASSOC);
-
-        $limit = (int) $this->config->get('similarLimit');
-
-        $result = [];
-        foreach ($data as $row) {
-            $similar = explode('|', $row['similar']);
-            $result[$row['articleID']] = array_slice($similar, 0, $limit);
-        }
-
-        return $result;
     }
 }

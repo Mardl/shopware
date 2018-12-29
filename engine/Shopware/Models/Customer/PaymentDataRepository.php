@@ -32,7 +32,8 @@ use Shopware\Components\Model\ModelRepository;
 class PaymentDataRepository extends ModelRepository
 {
     /**
-     * @param null $userId
+     * @param null|int $userId
+     * @param string   $paymentName
      *
      * @return \Doctrine\ORM\QueryBuilder
      */
@@ -40,16 +41,14 @@ class PaymentDataRepository extends ModelRepository
     {
         $builder = $this->getEntityManager()->createQueryBuilder();
         $builder->select(['paymentdata']);
-        $builder->from('Shopware\Models\Customer\PaymentData', 'paymentdata')
+        $builder->from(\Shopware\Models\Customer\PaymentData::class, 'paymentdata')
             ->leftJoin('paymentdata.paymentMean', 'paymentmean')
             ->leftJoin('paymentdata.customer', 'customer')
             ->where('customer.id = :userId')
             ->andWhere('paymentmean.name = :paymentName')
             ->andWhere('paymentmean.active = 1')
-            ->setParameters([
-                'userId' => $userId,
-                'paymentName' => $paymentName,
-            ]);
+            ->setParameter('userId', $userId)
+            ->setParameter('paymentName', $paymentName);
 
         return $builder;
     }

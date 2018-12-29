@@ -21,7 +21,6 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
-
 use Shopware\Components\Random;
 
 class sBasketTest extends PHPUnit\Framework\TestCase
@@ -112,7 +111,7 @@ class sBasketTest extends PHPUnit\Framework\TestCase
 
         // Test with empty session, expect empty array
         $this->assertEquals(
-            ['hideBasket' => false, 'articles' => null],
+            ['hideBasket' => false, 'articles' => []],
             $this->module->sCheckBasketQuantities()
         );
     }
@@ -584,16 +583,19 @@ class sBasketTest extends PHPUnit\Framework\TestCase
         // Test with session and empty basket, expect false
         $this->assertFalse($this->module->getMaxTax());
 
-        $randomArticle = $this->db->fetchRow(
+        $products = $this->db->fetchAll(
             'SELECT * FROM s_articles_details detail
             INNER JOIN s_articles article
               ON article.id = detail.articleID
+            INNER JOIN s_core_tax tax
+              ON tax.id = article.taxID
             WHERE detail.active = 1
-            LIMIT 1'
+            ORDER BY tax.tax
+            LIMIT 2'
         );
+        $originalTaxId = $products[0]['taxID'];
 
-        $randOne = rand(1, 100);
-        $randTwo = rand(1, 100);
+        $this->db->update('s_articles', ['taxID' => 4], ['id = ?' => $products[0]['id']]);
 
         // Add one article, check that he is the new maximum
         $this->db->insert(
@@ -602,12 +604,12 @@ class sBasketTest extends PHPUnit\Framework\TestCase
                 'price' => 100,
                 'quantity' => 1,
                 'sessionID' => $this->session->get('sessionId'),
-                'ordernumber' => $randomArticle['ordernumber'],
-                'articleID' => $randomArticle['articleID'],
-                'tax_rate' => $randOne,
+                'ordernumber' => $products[0]['ordernumber'],
+                'articleID' => $products[0]['articleID'],
+                'tax_rate' => $products[0]['tax'],
             ]
         );
-        $this->assertEquals($randOne, $this->module->getMaxTax());
+        $this->assertEquals($products[0]['tax'], $this->module->getMaxTax());
 
         // Add another article, check that we get the max of the two
         $this->db->insert(
@@ -616,12 +618,14 @@ class sBasketTest extends PHPUnit\Framework\TestCase
                 'price' => 100,
                 'quantity' => 1,
                 'sessionID' => $this->session->get('sessionId'),
-                'ordernumber' => $randomArticle['ordernumber'],
-                'articleID' => $randomArticle['articleID'],
-                'tax_rate' => $randTwo,
+                'ordernumber' => $products[1]['ordernumber'],
+                'articleID' => $products[1]['articleID'],
+                'tax_rate' => $products[1]['tax'],
             ]
         );
-        $this->assertEquals(max($randOne, $randTwo), $this->module->getMaxTax());
+        $this->assertEquals($products[1]['tax'], $this->module->getMaxTax());
+
+        $this->db->update('s_articles', ['taxID' => $originalTaxId], ['id = ?' => $products[0]['id']]);
 
         // Housekeeping
         $this->db->delete(
@@ -1793,6 +1797,57 @@ class sBasketTest extends PHPUnit\Framework\TestCase
         $this->assertEquals(1, $result['Quantity']);
     }
 
+    public function testsGetBasketDataHasNumericCartItemAmounts()
+    {
+        $resourceHelper = new \Shopware\Tests\Functional\Bundle\StoreFrontBundle\Helper();
+        try {
+            $article = $resourceHelper->createArticle([
+                'name' => 'Testartikel',
+                'description' => 'Test description',
+                'active' => true,
+                'mainDetail' => [
+                    'number' => 'swTEST' . uniqid(rand()),
+                    'inStock' => 15,
+                    'lastStock' => true,
+                    'unitId' => 1,
+                    'prices' => [
+                        [
+                            'customerGroupKey' => 'EK',
+                            'from' => 1,
+                            'to' => '-',
+                            'price' => 29.97,
+                        ],
+                    ],
+                ],
+                'taxId' => 4,
+                'supplierId' => 2,
+                'categories' => [10],
+            ]);
+            $customerGroup = $resourceHelper->createCustomerGroup();
+            $customer = $this->createDummyCustomer();
+            $this->session['sUserId'] = $customer->getId();
+            $this->module->sSYSTEM->sSESSION_ID = uniqid(rand());
+            $this->session->offsetSet('sessionId', $this->module->sSYSTEM->sSESSION_ID);
+            $this->module->sSYSTEM->sUSERGROUPDATA['id'] = $customerGroup->getId();
+
+            // Add the article to the basket
+            $this->module->sAddArticle($article->getMainDetail()->getNumber(), 2);
+            $this->module->sRefreshBasket();
+            $basketData = $this->module->sGetBasketData();
+
+            // Assert that a valid basket was returned
+            $this->assertNotEmpty($basketData);
+            // Assert that there is a numeric basket amount
+            $this->assertArrayHasKey('amountNumeric', $basketData['content'][0], 'amountNumeric for cart item should exist');
+            $this->assertArrayHasKey('amountnetNumeric', $basketData['content'][0], 'amountnetNumeric for cart item should exist');
+            $this->assertGreaterThan(0, $basketData['content'][0]['amountNumeric']);
+            $this->assertGreaterThan(0, $basketData['content'][0]['amountnetNumeric']);
+            $this->assertEquals(29.97 * 2, $basketData['content'][0]['amountNumeric'], 'amountNumeric for cart item should respect cart item quantity', 0.001);
+        } finally {
+            $resourceHelper->cleanUp();
+        }
+    }
+
     /**
      * Assert that rounding basket totals works correctly for a basket that has a decimal-binary conversion inaccuracies
      * which results in a total that is very slightly below zero.
@@ -1888,6 +1943,58 @@ class sBasketTest extends PHPUnit\Framework\TestCase
             }
             $resourceHelper->cleanUp();
         }
+    }
+
+    public function testsGetBasketWithInvalidProduct()
+    {
+        $this->assertEquals([], $this->module->sGetBasket());
+
+        $this->module->sSYSTEM->sSESSION_ID = uniqid(rand());
+        $this->session->offsetSet('sessionId', $this->module->sSYSTEM->sSESSION_ID);
+
+        $resourceHelper = new \Shopware\Tests\Functional\Bundle\StoreFrontBundle\Helper();
+
+        // Setup article for the first basket position - an article that costs EUR 29.97
+        $product = $resourceHelper->createArticle([
+            'name' => 'Testartikel',
+            'description' => 'Test description',
+            'active' => true,
+            'mainDetail' => [
+                'number' => 'swTEST' . Random::getAlphanumericString(12),
+                'inStock' => 15,
+                'lastStock' => true,
+                'unitId' => 1,
+                'prices' => [
+                    [
+                        'customerGroupKey' => 'EK',
+                        'from' => 1,
+                        'to' => '-',
+                        'price' => 29.97,
+                    ],
+                ],
+            ],
+            'taxId' => 4,
+            'supplierId' => 2,
+            'categories' => [10],
+        ]);
+
+        $this->db->insert(
+            's_order_basket',
+            [
+                'price' => 2,
+                'quantity' => 1,
+                'sessionID' => $this->session->get('sessionId'),
+                'ordernumber' => $product->getMainDetail()->getNumber(),
+                'articleID' => $product->getId(),
+            ]
+        );
+
+        $this->assertEquals(1, count($this->module->sGetBasket()['content']));
+
+        $this->db->delete('s_articles_details', ['articleID = ?' => $product->getId()]);
+        $this->db->delete('s_articles', ['id = ?' => $product->getId()]);
+
+        $this->assertEquals([], $this->module->sGetBasket());
     }
 
     /**
@@ -2415,9 +2522,9 @@ class sBasketTest extends PHPUnit\Framework\TestCase
     {
         $date = new DateTime();
         $date->modify('-8 days');
-        $lastLogin = $date->format(DateTime::ISO8601);
+        $lastLogin = $date->format(DateTime::ATOM);
 
-        $birthday = DateTime::createFromFormat('Y-m-d', '1986-12-20')->format(DateTime::ISO8601);
+        $birthday = DateTime::createFromFormat('Y-m-d', '1986-12-20')->format(DateTime::ATOM);
 
         $testData = [
             'password' => 'fooobar',
@@ -2478,17 +2585,7 @@ class sBasketTest extends PHPUnit\Framework\TestCase
      */
     private function deleteDummyCustomer(\Shopware\Models\Customer\Customer $customer)
     {
-        $billingId = $this->db->fetchOne('SELECT id FROM s_user_billingaddress WHERE userID = ?', [$customer->getId()]);
-        $shippingId = $this->db->fetchOne('SELECT id FROM s_user_shippingaddress WHERE userID = ?', [$customer->getId()]);
-
-        if ($billingId) {
-            $this->db->delete('s_user_billingaddress_attributes', 'billingID = ' . $billingId);
-            $this->db->delete('s_user_billingaddress', 'id = ' . $billingId);
-        }
-        if ($shippingId) {
-            $this->db->delete('s_user_shippingaddress_attributes', 'shippingID = ' . $shippingId);
-            $this->db->delete('s_user_shippingaddress', 'id = ' . $shippingId);
-        }
+        $this->db->delete('s_user_addresses', 'user_id = ' . $customer->getId());
         $this->db->delete('s_core_payment_data', 'user_id = ' . $customer->getId());
         $this->db->delete('s_user_attributes', 'userID = ' . $customer->getId());
         $this->db->delete('s_user', 'id = ' . $customer->getId());

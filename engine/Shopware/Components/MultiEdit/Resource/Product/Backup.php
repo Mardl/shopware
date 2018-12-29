@@ -56,11 +56,14 @@ class Backup
      */
     protected $backupPath;
 
+    /**
+     * @var string
+     */
     protected $backupBaseName = 'me-backup-';
 
     /**
-     * @param $dqlHelper DqlHelper
-     * @param $config \Shopware_Components_Config
+     * @param DqlHelper                   $dqlHelper
+     * @param \Shopware_Components_Config $config
      *
      * @throws \RuntimeException
      */
@@ -95,8 +98,8 @@ class Backup
      */
     public function setupBackupDir()
     {
-        $this->backupPath = Shopware()->DocPath() . 'files/backup/multi_edit';
-
+        $projectDir = Shopware()->Container()->getParameter('shopware.app.rootdir');
+        $this->backupPath = $projectDir . 'files/backup/multi_edit';
         $this->backupPath = rtrim($this->backupPath, '/\\') . '/';
 
         if (!is_dir($this->backupPath)) {
@@ -110,7 +113,7 @@ class Backup
             }
 
             if (!is_dir($this->backupPath)) {
-                throw new \RuntimeException("Could not find nor create '{$this->backupPath}'");
+                throw new \RuntimeException(sprintf('Could not find nor create "%s"', $this->backupPath));
             }
         }
     }
@@ -118,15 +121,15 @@ class Backup
     /**
      * Returns a list of backup files
      *
-     * @param $offset
-     * @param $limit
+     * @param int $offset
+     * @param int $limit
      *
      * @return array
      */
     public function getList($offset, $limit)
     {
         /** @var \Doctrine\ORM\Query $query */
-        $query = $this->getDqlHelper()->getEntityManager()->getRepository('\Shopware\Models\MultiEdit\Backup')->getBackupListQuery($offset, $limit);
+        $query = $this->getDqlHelper()->getEntityManager()->getRepository(\Shopware\Models\MultiEdit\Backup::class)->getBackupListQuery($offset, $limit);
         $query->setHydrationMode(\Doctrine\ORM\AbstractQuery::HYDRATE_ARRAY);
         /** @var \Doctrine\ORM\Tools\Pagination\Paginator $paginator */
         $paginator = Shopware()->Models()->createPaginator($query);
@@ -172,10 +175,10 @@ class Backup
     /**
      * Finish a backup - compresses it and creates a model for the backup.
      *
-     * @param $filterString
-     * @param $operations
-     * @param $items
-     * @param $id
+     * @param string $filterString
+     * @param array  $operations
+     * @param array  $items
+     * @param int    $id
      */
     public function finishBackup($filterString, $operations, $items, $id)
     {
@@ -203,8 +206,8 @@ class Backup
     /**
      * Restores a backup from zip archive. Will only run one sql file per query
      *
-     * @param $id
-     * @param $offset
+     * @param int $id
+     * @param int $offset
      *
      * @throws \RuntimeException
      *
@@ -214,27 +217,28 @@ class Backup
     {
         $entityManager = $this->getDqlHelper()->getEntityManager();
         /** @var \Shopware\Models\MultiEdit\Backup $backup */
-        $backup = $entityManager->find('\Shopware\Models\MultiEdit\Backup', $id);
+        $backup = $entityManager->find(\Shopware\Models\MultiEdit\Backup::class, $id);
 
         if (!$backup) {
-            throw new \RuntimeException("Backup by id {$id} not found");
+            throw new \RuntimeException(sprintf('Backup by id %d not found', $id));
         }
 
         $path = $backup->getPath();
         $dir = dirname($path);
 
-        if ($offset == 0) {
+        if ($offset === 0) {
             $zip = new \ZipArchive();
             $zip->open($path);
             $success = $zip->extractTo($dir);
             if (!$success) {
-                throw new \RuntimeException("Could not extract {$path} to {$dir}");
+                throw new \RuntimeException(sprintf('Could not extract %s to %s', $path, $dir));
             }
             $zip->close();
         }
 
         // Get list of datasql files
         $dataFiles = $this->getDirectoryList($dir . '/', ['datasql']);
+        $numFiles = null;
 
         if (!empty($dataFiles)) {
             $tables = [];
@@ -282,7 +286,7 @@ class Backup
     /**
      * Deletes a given backup
      *
-     * @param $id
+     * @param int $id
      *
      * @throws \RuntimeException
      *
@@ -292,10 +296,10 @@ class Backup
     {
         $entityManager = $this->getDqlHelper()->getEntityManager();
         /** @var \Shopware\Models\MultiEdit\Backup $backup */
-        $backup = $entityManager->find('\Shopware\Models\MultiEdit\Backup', $id);
+        $backup = $entityManager->find(\Shopware\Models\MultiEdit\Backup::class, $id);
 
         if (!$backup) {
-            throw new \RuntimeException("Backup by id {$id} not found");
+            throw new \RuntimeException(sprintf('Backup by id %d not found', $id));
         }
 
         $dir = dirname($backup->getPath());
@@ -342,7 +346,7 @@ class Backup
             if (empty($zips)) {
                 $query = $this->getDqlHelper()->getEntityManager()->createQueryBuilder()
                     ->select('backup')
-                    ->from('\Shopware\Models\MultiEdit\Backup', 'backup')
+                    ->from(\Shopware\Models\MultiEdit\Backup::class, 'backup')
                     ->where('backup.path LIKE ?1')
                     ->setParameter(1, $folder . '%')
                     ->getQuery();
@@ -364,7 +368,7 @@ class Backup
     /**
      * Try do determine the data type of the value in order to backup it properly
      *
-     * @param $value
+     * @param int|float $value
      *
      * @return null|int
      */
@@ -380,7 +384,7 @@ class Backup
         // use float as type
         if ((float) $value != (int) $value) {
             return \Zend_Db::FLOAT_TYPE;
-        // Else encode it as int
+            // Else encode it as int
         }
 
         return \Zend_Db::INT_TYPE;
@@ -439,7 +443,7 @@ class Backup
     /**
      * Returns a prefix for a given table
      *
-     * @param $table
+     * @param string $table
      *
      * @throws \RuntimeException
      *
@@ -450,7 +454,7 @@ class Backup
         $prefix = $this->affectedTables[$table]['prefix'];
 
         if (!$prefix) {
-            throw new \RuntimeException("Empty prefix for {$table}");
+            throw new \RuntimeException(sprintf('Empty prefix for %s', $table));
         }
 
         return $prefix;
@@ -459,7 +463,7 @@ class Backup
     /**
      * Return an array of columns which needs to be backed up for a given table
      *
-     * @param $table
+     * @param string $table
      *
      * @throws \RuntimeException
      *
@@ -470,7 +474,7 @@ class Backup
         $columns = $this->affectedTables[$table]['columns'];
 
         if (!$columns) {
-            throw new \RuntimeException("Empty column for {$table}");
+            throw new \RuntimeException(sprintf('Empty column for %s', $table));
         }
 
         return $columns;
@@ -479,7 +483,7 @@ class Backup
     /**
      * Returns a string from a given operations array
      *
-     * @param $operations
+     * @param array $operations
      *
      * @return string
      */
@@ -496,10 +500,10 @@ class Backup
     /**
      * Creates a backup model for a given backup
      *
-     * @param $path
-     * @param $filterString
-     * @param $operations
-     * @param $items
+     * @param string $path
+     * @param string $filterString
+     * @param array  $operations
+     * @param array  $items
      */
     protected function saveBackup($path, $filterString, $operations, $items)
     {
@@ -521,10 +525,10 @@ class Backup
     /**
      * Dumps a given table to disc - as only needed columns are exported, this is quite fast
      *
-     * @param $table
-     * @param $name
-     * @param $ids
-     * @param $newBackup
+     * @param string $table
+     * @param string $name
+     * @param int[]  $ids
+     * @param bool   $newBackup
      *
      * @throws \RuntimeException
      */
@@ -571,7 +575,7 @@ class Backup
                 // Special quoting for numbers
                 $type = $this->getDataTypeForExport($value);
                 // Everything else is quoted as string - except 'null'
-                $vals[] = is_null($value) ? 'NULL' : $this->getDqlHelper()->getDb()->quote($value, $type);
+                $vals[] = $value === null ? 'NULL' : $this->getDqlHelper()->getDb()->quote($value, $type);
             }
             $output[] = '(' . implode(', ', $vals) . ')';
         }
@@ -583,7 +587,7 @@ class Backup
     /**
      * Returns output directory for a given name and takes care for directory permissions
      *
-     * @param $name
+     * @param string $name
      *
      * @return string
      */
@@ -606,7 +610,7 @@ class Backup
     /**
      * Compresses the backup and delete old uncompressed files
      *
-     * @param $name
+     * @param string $name
      *
      * @return string
      */
@@ -631,7 +635,7 @@ class Backup
     /**
      * Zips the backup directory content
      *
-     * @param $name
+     * @param string $name
      *
      * @throws \RuntimeException
      *
@@ -644,7 +648,7 @@ class Backup
         $zip = new \ZipArchive();
 
         if ($zip->open($zipPath, \ZipArchive::CREATE) !== true) {
-            throw new \RuntimeException("Could not open {$zipPath}, please check the permissions. ");
+            throw new \RuntimeException(sprintf('Could not open %s, please check the permissions.', $zipPath));
         }
 
         $files = $this->getDirectoryList($this->outputPath);
@@ -663,9 +667,9 @@ class Backup
     /**
      * Return a list of files with a certain extension
      *
-     * @param $path
-     * @param array $findExtension
-     * @param array $blacklistName
+     * @param string $path
+     * @param array  $findExtension
+     * @param array  $blacklistName
      *
      * @return array
      */
